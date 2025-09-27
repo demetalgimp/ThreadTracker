@@ -23,8 +23,10 @@ namespace Parser {
         eBitwiseXor = '^', eBitwiseXorEquals = '^=',
         eBitwiseNot = '~', eBitwiseNotEquals = '~=',
         eArithmeticIf = '(?:)',
-        ePointer = '->',
-        eEmpty = 0, eWord = 'WORD', eNumber = '#.##', eChar = '\'?\'', eString = '".."', eComment = '/**/', eSpace = 'SPAC', eEOF = -1, eNameResolution = '::'
+        ePointer = '->', eNameResolution = '::',
+        eEmpty = 0, eWord = 'WORD', eDecimalNumber = '####', eHexadecimalNumber = '0x##', eBinaryNumber = '0b##', eFloatingNumber = '#.##', eScientificNumber = '##e#',
+        eStringConstant = '".."', eCharConstant = '\'..\'',
+        eBlockComment = '/**/', eLineComment = '//..', eSpace = 'SPAC', eEOF = -1
     };
 
     class Stream {

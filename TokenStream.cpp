@@ -57,31 +57,33 @@ namespace Parser {
     TokenStream::Token::Token(EToken token, const Tools::String& text): token_enum(token) {
         if ( text.IsEmpty() ) {
             char tmps[5] = {0, 0, 0, 0, 0}, *s = tmps;
-            int i = 3;
-            char c;
-            c = (char)((token >> (i << 3)) & 0xFF);
-            if ( c != 0 ) {
-                *s++ = c;
-            }
-            i--;
-            c = (char)((token >> (i << 3)) & 0xFF);
-            if ( c != 0 ) {
-                *s++ = c;
-            }
-            i--;
-            c = (char)((token >> (i << 3)) & 0xFF);
-            if ( c != 0 ) {
-                *s++ = c;
-            }
-            i--;
-            c = (char)((token >> (i << 3)) & 0xFF);
-            if ( c != 0 ) {
-                *s++ = c;
-            }
-            // for ( int i = 0; i < sizeof(tmps); i++ ) {
-            //     char c = token
+            // int i = 3;
+            // char c;
+            // c = (char)((token >> (i << 3)) & 0xFF);
+            // if ( c != 0 ) {
+            //     *s++ = c;
             // }
-            // { (char)((token >> 8) & 0xFF), (char)(token & 0xFF), (char)((token >> 16) & 0xFF), (char)((token >> 24) & 0xFF), 0 };
+            // i--;
+            // c = (char)((token >> (i << 3)) & 0xFF);
+            // if ( c != 0 ) {
+            //     *s++ = c;
+            // }
+            // i--;
+            // c = (char)((token >> (i << 3)) & 0xFF);
+            // if ( c != 0 ) {
+            //     *s++ = c;
+            // }
+            // i--;
+            // c = (char)((token >> (i << 3)) & 0xFF);
+            // if ( c != 0 ) {
+            //     *s++ = c;
+            // }
+            for ( int i = 3; i >= 0; i-- ) {
+                char c = (char)((token >> (i << 3)) & 0xFF);
+                if ( c != 0 ) {
+                    *s++ = c;
+                }
+            }
             this->text = tmps;
 
         } else {
@@ -114,7 +116,7 @@ namespace Parser {
                     break;
                 }
             }
-            etoken = eComment;
+            etoken = eLineComment;
 
         } else if ( stream.peek("/*") ) {
             tmps[index++] = stream.current();
@@ -133,7 +135,7 @@ namespace Parser {
                 tmps[index++] = stream.current();
                 stream.next();
             }
-            etoken = eComment;
+            etoken = eBlockComment;
         }
 
         tmps[index++] = 0;
@@ -154,6 +156,7 @@ namespace Parser {
 
 //TODO: add suffixes {u,l,ul,lu,ll,ull,llu}
     void TokenStream::getNumber(void) {
+        EToken etoken = eDecimalNumber;
         char tmps[200];
         uint index = 0;
         if ( stream.current() == '-'  ||  stream.current() == '+' ) {
@@ -167,6 +170,7 @@ namespace Parser {
             while ( stream.next() == '0'  ||  stream.current() == '1'  ||  stream.current() == '\'' ) {
                 tmps[index++] = stream.current();
             }
+            etoken = eBinaryNumber;
 
         } else if ( stream.peek("0x")  ||  stream.peek("0X") ) {
             tmps[index++] = stream.next();
@@ -174,6 +178,7 @@ namespace Parser {
             while ( isxdigit(stream.next())  ||  stream.current() == '\'' ) {
                 tmps[index++] = stream.current();
             }
+            etoken = eHexadecimalNumber;
 
         } else {
             while ( isdigit(stream.next())  ||  stream.current() == '\'' ) {
@@ -187,8 +192,8 @@ namespace Parser {
                         tmps[index++] = stream.current();
                     }
                 }
+                etoken = eFloatingNumber;
             }
-            // if ( tolower(stream.peek(1)) == 'e' ) {
             if ( tolower(stream.current()) == 'e' ) {
                 tmps[index++] = stream.current();
                 if ( stream.next() == '-'  ||  stream.current() == '+' ) {
@@ -201,10 +206,11 @@ namespace Parser {
                         tmps[index++] = stream.current();
                     }
                 }
+                etoken = eScientificNumber;
             }
         }
         tmps[index] = 0;
-        current_token = Token(eNumber, tmps);
+        current_token = Token(etoken, tmps);
     }
 
     void TokenStream::getString(void) {
@@ -223,7 +229,7 @@ namespace Parser {
         }
         // tmps[index++] = stream.current();
         tmps[index] = 0;
-        current_token = Token(eString, tmps);
+        current_token = Token( (end_of_string == '"'? eStringConstant: eCharConstant), tmps);
     }
 
     TokenStream::Token TokenStream::next(void) {
