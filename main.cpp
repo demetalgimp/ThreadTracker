@@ -1,13 +1,37 @@
 #include <stdio.h>
 #include "TokenStream.hpp"
 
-int main(int cnt, char *args[]) {
-    const char *test_str =
+static const char *test_elements_str =
         //--- operators and punctuation
-            ": :: ~ ~= % %= ^ ^= & &= - -> -- -= + += ++ "
-            "* *= | || |= / /= ! != = == > >> >= >>= < <= << <<="
-            "# ( ) [ ] \\ { } ; , . ? "
-            "` @ $"
+            ": :: ~ ~= %\n"
+            "%= ^ ^= & &=\n"
+            "- -> -- -=\n"
+            "+ += ++\n"
+            "* *= | || |= \n"
+            "/ /= ! != = ==\n"
+            "> >> >= >>= \n"
+            "< <= << <<=\n"
+            "# ( ) [ ] \\ \n"
+            "{ } ; , . ?\n"
+            "` @ $\n"
+
+        //--- numbers
+            "0 0b1010010001111001100111 0123274127546312\n"
+            "12304823876239012938409813 0x123456789ABCDEF\n"
+            "-0 -0b101 -0123 -123 -0x01'23'456789abcdef\n"
+            "+0 +0b101 +0123 +123 +0x01'23'456789abcdef\n"
+            "123.1 123.0001 12'3.00'01\n"
+            "123.1 z -123.1 z +123.1\n"
+            "z 1.234e1 z -1.234e1 z\n"
+            "+1.234e1 z 1.234e-1 z\n"
+            "-1.234e-1 z +1.234e+1 z\n"
+            "-123.1 -123.0001 +123.1 +123.0001\n"
+            "123e789 123e-789 123e+789\n"
+            "0123.e1 0123.e-1 0123.e+1\n"
+            "0123.012e1 0123.012e-1 0123.012e+1\n"
+
+        //--- operands
+            "a abcde abc_12345 _abc _\n"
 
         //--- comments
             "/*one line comment*/\n"
@@ -18,313 +42,168 @@ int main(int cnt, char *args[]) {
             "/*0123456789ABCDEF0123456789ABCDEF */\n"
             "/**//* */\n/**/"
             "//abcdefghijklmnopqrstuvwxyz \n"
-
-        //--- numbers
-            "0 0b1010010001111001100111 0123274127546312 12304823876239012938409813 0x123456789ABCDEF "
-            "-0 -0b101 -0123 -123 -0x01'23'456789abcdef "
-            "+0 +0b101 +0123 +123 +0x01'23'456789abcdef "
-            "123.1 123.0001 12'3.00'01 "
-            "123.1 z -123.1 z +123.1 z 1.234e1 z -1.234e1 z +1.234e1 z 1.234e-1 z -1.234e-1 z +1.234e+1 z"
-            "-123.1 -123.0001 +123.1 +123.0001 "
-            "123e789 123e-789 123e+789 "
-            "0123.e1 0123.e-1 0123.e+1 "
-            "0123.012e1 0123.012e-1 0123.012e+1 "
-
-        //---
-            "    void TokenStream::getWhiteSpace(void) {\n"
-            "        EToken etoken = (stream.isEOF()? eEOF: eEmpty);\n"
-            "        char tmps[1000];\n"
-            "        uint index = 0;\n"
-            "        if ( stream.isSpace() ) {\n"
-            "            while ( index < sizeof(tmps)  &&  !stream.isEOF()  &&  stream.isSpace() ) {\n"
-            "                tmps[index++] = stream.current();\n"
-            "                stream.next();\n"
-            "            }\n"
-            "            etoken = eSpace;\n"
-            "\n"
-            "        } else if ( stream.peek(\"//\") ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "            tmps[index++] = stream.next();\n"
-            "            while ( !stream.isEOF() ) {\n"
-            "                tmps[index++] = stream.next();\n"
-            "                if ( stream.isEOL()  ||  stream.isEOF() ) {\n"
-            "                    stream.next();\n"
-            "                    break;\n"
-            "                }\n"
-            "            }\n"
-            "            etoken = eComment;\n"
-            "\n"
-            "        } else if ( stream.peek(\"/*\") ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "            tmps[index++] = stream.next();\n"
-            "            tmps[index++] = stream.next();\n"
-            "            stream.next();\n"
-            "            while ( !stream.isEOF() ) {\n"
-            "                // tmps[index++] = stream.current();\n"
-            "                if ( stream.peek(\"*/\") ) {\n"
-            "                    tmps[index++] = stream.current();\n"
-            "                    tmps[index++] = stream.next();\n"
-            "                    stream.next();\n"
-            "                    break;\n"
-            "                }\n"
-            "                tmps[index++] = stream.current();\n"
-            "                stream.next();\n"
-            "            }\n"
-            "            etoken = eComment;\n"
-            "        }\n"
-            "\n"
-            "        tmps[index++] = 0;\n"
-            "        // etoken = (stream.isEOF()? eEOF: (tmps[0] != 0? eSpace: eEmpty));\n"
-            "        current_token = Token(etoken, tmps);\n"
-            "    }\n"
-            "    void TokenStream::getIdentifier(void) {\n"
-            "        char tmps[200];\n"
-            "        uint index = 0;\n"
-            "        tmps[index++] = stream.current();\n"
-            "        while ( isalnum(stream.next())  ||  stream.current() == '_' ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "        }\n"
-            "        tmps[index] = 0;\n"
-            "        current_token = Token(eWord, tmps);\n"
-            "    }\n"
-            "    void TokenStream::getNumber(void) {\n"
-            "        char tmps[200];\n"
-            "        uint index = 0;\n"
-            "        tmps[index++] = stream.current();\n"
-            "        while ( isdigit(stream.next()) ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "        }\n"
-            "        if ( stream.current() == '.' ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "            if ( isdigit(stream.next()) ) {\n"
-            "                tmps[index++] = stream.current();\n"
-            "                while ( isdigit(stream.next()) ) {\n"
-            "                    tmps[index++] = stream.current();\n"
-            "                }\n"
-            "            }\n"
-            "        }\n"
-            "        if ( stream.current() == 'e'  ||  stream.current() == 'E' ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "            stream.next();\n"
-            "            if ( stream.current() == '-'  ||  stream.current() == '+' ) {\n"
-            "                tmps[index++] = stream.current();\n"
-            "                stream.next();\n"
-            "            }\n"
-            "            if ( isdigit(stream.current()) ) {\n"
-            "                tmps[index++] = stream.current();\n"
-            "                while ( isdigit(stream.next()) ) {\n"
-            "                    tmps[index++] = stream.current();\n"
-            "                }\n"
-            "            }\n"
-            "        }\n"
-            "        tmps[index] = 0;\n"
-            "        current_token = Token(eNumber, tmps);\n"
-            "    }\n"
-            "    void TokenStream::getString(void) {\n"
-            "        char tmps[1000];\n"
-            "        uint index = 0;\n"
-            "        char end_of_string = stream.current();\n"
-            "        tmps[index++] = stream.current();\n"
-            "        while ( !(stream.isEOF()  ||  stream.next() == end_of_string) ) {\n"
-            "            tmps[index++] = stream.current();\n"
-            "            stream.next();\n"
-            "        }\n"
-            "        tmps[index++] = stream.current();\n"
-            "        tmps[index] = 0;\n"
-            "        current_token = Token(eString, tmps);\n"
-            "    }\n"
-            "    TokenStream::Token TokenStream::next(void) {\n"
-            "        current_token = Token(eEOF);\n"
-            "        getWhiteSpace();\n"
-            "        if ( current_token.isEmpty() ) {\n"
-            "            if ( current_token.isEOF() ) {\n"
-            "                current_token = Token(eEOF);\n"
-            "                return current_token;\n"
-            "\n"
-            "            } else if ( isalpha(stream.current())  ||  stream.current() == '_' ) {\n"
-            "                getIdentifier();\n"
-            "\n"
-            "            } else if ( isdigit(stream.current()) ) {\n"
-            "                getNumber();\n"
-            "\n"
-            "            } else if ( stream.current() == '\\\''  ||  stream.current() == '\"' ) {\n"
-            "                getString();\n"
-            "\n"
-            "            } else {\n"
-            "                switch ( stream.current() ) {\n"
-            "                    case '`':\n"
-            "                    case '@':\n"
-            "                    case '#':\n"
-            "                    case '$':\n"
-            "                    case '(':\n"
-            "                    case ')':\n"
-            "                    case '[':\n"
-            "                    case ']':\n"
-            "                    case '\\\\':\n"
-            "                    case '{':\n"
-            "                    case '}':\n"
-            "                    case ';':\n"
-            "                    case ',':\n"
-            "                    case '.':\n"
-            "                    case '?': current_token = Token(stream.current()); break;\n"
-            "\n"
-            "                    case ':':\n"
-            "                        if ( stream.peek(1) == ':' ) {\n"
-            "                            current_token = Token(eNameResolution);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eColon);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '~':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eBitwiseNotEquals);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eBitwiseNot);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '%':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eModulusEquals);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eModulus);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '^':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eBitwiseXorEquals);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eBitwiseXor);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '&':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eBitwiseAndEquals);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '&' ) {\n"
-            "                            current_token = Token(eBooleanAnd);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eBitwiseAnd);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '-':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eMinusEquals);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '-' ) {\n"
-            "                            current_token = Token(eDecrement);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eMinus);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '+':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eSumEquals);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '+' ) {\n"
-            "                            current_token = Token(eIncrement);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eSum);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '*':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eMultiplyEquals);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eMultiply);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '|':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eBitwiseOrEquals);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '|' ) {\n"
-            "                            current_token = Token(eBooleanOr);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eBitwiseOr);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '/':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eDivideEquals);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eDivide);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '!':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eNotEqualTo);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eBooleanNot);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '=':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eEqualTo);\n"
-            "                            stream.next();\n"
-            "                        } else {\n"
-            "                            current_token = Token(eEquals);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '<':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eLessEqualTo);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '<' ) {\n"
-            "                            stream.next();\n"
-            "                            if ( stream.peek(1) == '=' ) {\n"
-            "                                current_token = Token(eShiftLeftAssign);\n"
-            "                                stream.next();\n"
-            "                            } else {\n"
-            "                                current_token = Token(eShiftLeft);\n"
-            "                            }\n"
-            "                        } else {\n"
-            "                            current_token = Token(eLessThan);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                    case '>':\n"
-            "                        if ( stream.peek(1) == '=' ) {\n"
-            "                            current_token = Token(eGreaterEqualTo);\n"
-            "                            stream.next();\n"
-            "                        } else if ( stream.peek(1) == '>' ) {\n"
-            "                            stream.next();\n"
-            "                            if ( stream.peek(1) == '=' ) {\n"
-            "                                current_token = Token(eShiftRightAssign);\n"
-            "                                stream.next();\n"
-            "                            } else {\n"
-            "                                current_token = Token(eShiftRight);\n"
-            "                            }\n"
-            "                        } else {\n"
-            "                            current_token = Token(eGreaterThan);\n"
-            "                        }\n"
-            "                        break;\n"
-            "                }\n"
-            "                stream.next();\n"
-            "            }\n"
-            "        }\n"
-            "        return current_token;\n"
-            "    }\n"
             "/*1234567890\n"
             "           \n"
-        ;
+;
 
-    Parser::TokenStream stream(test_str);
+void test_scanner(const Tools::String& string) {
+    Parser::TokenStream stream(string);
     Parser::TokenStream::Token token;
-    Tools::String acc;
+    Tools::String accumulator;
     while ( !(token = stream.next()).isEOF() ) {
-        fprintf(stderr, "{%s, %c}\n", token.text.GetText(), token.token_enum);
-        acc += token.text;
+        std::cerr << token;
+        if ( token.token_text == "\n" ) {
+            std::cerr << std::endl;
+        }
+        accumulator += token.token_text;
     }
-    fprintf(stderr, "%s\n", test_str);
-    fprintf(stderr, "%s\n%s\n", acc.GetText(), (acc != test_str? "FAILED": "passed") );
+    std::cerr << std::endl;
+
+    // if ( accumulator != string ) {
+        std::vector<Tools::String> original = string.split('\n');
+        std::vector<Tools::String> result = accumulator.split('\n');
+
+        uint max_length = 0;
+        for ( Tools::String line : original ) {
+            max_length = (max_length < line.getLength()? line.getLength(): max_length);
+        }
+
+        for ( uint i = 0; i < original.size(); i++ ) {
+            fprintf(stderr, "[%4d] %*s  [%4d] %s\n", i, -max_length, original[i].encode().getText(), i, result[i].encode().getText());
+        }
+    //     fprintf(stderr, "FAILED\n");
+
+    // } else {
+    //     fprintf(stderr, "Passed\n");
+    // }
+}
+
+// struct __threadtracker_thread_state__ {
+//     const char *method_name;
+//     uint linenum;
+// };
+static const char *__WEAVER_FN_HEADER__ =
+            "{"
+                "struct __threadtracker_thread_state__ __tts__ = {"
+                        ".method_name = \"__FUNCTION__\", "
+                        ".linenum = __LINE__ "
+                "};"
+                "register_thread(&__tts__);"
+            "}";
+
+void weave(const Tools::String& input_file, Tools::String& output) {
+    // Tools::String source = Tools::File::readFile(input_file);
+    Tools::String source =  "void fn(void) {\n"
+                                "// do nothing(); \n"
+                                "if ( a == b ) {\n"
+                                    "/* nothing to do */\n"
+                                "}\n"
+                                "while ( true ) {\n"
+                                    "do_nothing();\n"
+                                "}\n"
+                            "}\n";
+
+    Parser::TokenStream stream(source);
+    // Tools::String woven = stream.weave();
+    // Tools::File::writeFile(output, woven);
+    bool in_function = false;
+    uint brace_count = 0;
+    while ( !(stream.current().isEOF()) ) {
+        Tools::String whole_token = stream.getWhiteSpace().encode() + stream.current().token_text;
+        output += whole_token;
+        stream.next();
+fprintf(stderr, "!!!%s[%d]:[%s]\n", __FILE__, __LINE__, whole_token.getText());
+    // // --- Look for function definitions
+    //     if ( !in_function ) {
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Try function detection %s\n", __FILE__, __LINE__, stream.current().token_text.getText());
+    //         if ( stream.current().token_type == Parser::eWord ) {
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Found function name? %s\n", __FILE__, __LINE__, stream.current().token_text.getText());
+    //             if ( stream.next().token_type == Parser::eLeftParenthesis ) {
+    //                 uint paren_count = 1;
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Found function parameters? %s\n", __FILE__, __LINE__, stream.current().token_text.getText());
+
+    //             //--- Found what looks like a function definition, skip params looking for the opening brace
+    //                 while ( paren_count > 0  &&  !stream.current().isEOF() ) {
+    //                     output += stream.current().token_text;
+    //                     stream.next();
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Found parameters! Paren count=%d %s\n", __FILE__, __LINE__, paren_count, stream.current().token_text.getText());
+    //                     if ( stream.current().token_type == Parser::eLeftParenthesis ) {
+    //                         paren_count++;
+
+    //                     } else if ( stream.current().token_type == Parser::eRightParenthesis ) {
+    //                         paren_count--;
+    //                     }
+    //                 }
+
+    //             //--- If the next token is a brace, we've found a function definition
+    //             while ( stream.current().isSpace() ) {
+    //                 output += stream.current().token_text;
+    //                 stream.next();
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Found parameters! Paren count=%d %s\n", __FILE__, __LINE__, paren_count, stream.current().token_text.getText());
+    //             }
+    //             if ( stream.current().token_type == Parser::eLeftBrace ) {
+
+    //                     in_function = true;
+    //                     brace_count = 1;
+    //                     output += stream.current().token_text;
+    //                     stream.next();
+    //                     output += __WEAVER_FN_HEADER__;
+
+    //                 //-- Go through the function body.
+    //                     while ( brace_count > 0  &&  !stream.current().isEOF() ) {
+    //                         output += stream.current().token_text;
+    //                         stream.next();
+    //                         if ( stream.current() == Parser::eLeftBrace ) {
+    //                             brace_count++;
+
+    //                         } else if ( stream.current() == Parser::eRightBrace ) {
+    //                             brace_count--;
+    //                         }
+    //                     }
+
+    //                     in_function = false;
+
+    //                 } else {
+    //                     //--- Not a function, just continue
+    //                 }
+
+    //             }
+    //         }
+
+    // //--- Inside a function, look for the closing brace
+    //     } else {
+    //                                                                 fprintf(stderr, "!!!%s[%d]: Found function %s\n", __FILE__, __LINE__, stream.current().token_text.getText());
+    //         if ( stream.current() == Parser::eLeftBrace ) {
+    //             brace_count++;
+
+    //         } else if ( stream.current() == Parser::eRightBrace ) {
+    //             brace_count--;
+    //             if ( brace_count == 0 ) {
+    //                 in_function = false;
+    //             }
+    //         }
+    //         fprintf(stderr, "!!!%s[%d]:%s\n", __FILE__, __LINE__-1, output.getText());
+    //     }
+    }
+    output += "\n";
+}
+
+int main(int cnt, char *args[]) {
+    if ( cnt > 1  &&  Tools::String(args[1]) == "--test" ) {
+        test_scanner(test_elements_str);
+        args++;
+        std::cerr << "----------------------------------------------------------------------------------" << std::endl;
+    }
+    Tools::String result;
+    weave("",result);
+    std::cout << result;
+    // while ( *++args != nullptr ) {
+    //     try {
+    //         weave(Tools::File::readFile(*args), result);
+    //         std::cout << result;
+
+    //     } catch ( const Tools::String& error ) {
+    //         std::cerr << error << std::endl;
+    //     }
+    // }
 }

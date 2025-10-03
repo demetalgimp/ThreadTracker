@@ -71,7 +71,7 @@ namespace Tools {
 			return 0xFFu;
 		}
 	}
-	void Blob::Clear(void) {
+	void Blob::clear(void) {
 		if ( text != nullptr  &&  text != EMPTY ) {
 			delete [] text;
 			text = const_cast<uchar*>(EMPTY);
@@ -82,7 +82,7 @@ namespace Tools {
 	//                 v               v               v               v               v
 	// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0
 	// xxxxx:  00 01 02 03  04 05 06 07 | 08 09 0A 0B  0C 0D 0E 0F   0123456789ABCDEF
-	String Blob::HexDump(void) const {
+	String Blob::hexDump(void) const {
 		const uint BYTES_WIDE = 16;
 		const uint TEXT_INDEX = 0x3C;
 		const uint LINE_LEN = 0x4B;
@@ -125,7 +125,7 @@ namespace Tools {
 		return result;
 	}
 
-	String Blob::ToString(void) const {
+	String Blob::toString(void) const {
 		char tmps[length * 4], *s = tmps;
 		memset(tmps, 0, sizeof(tmps));
 		for ( uint i = 0; i < length; i++ ) {
@@ -161,7 +161,7 @@ namespace Tools {
  * 	Notes: Yes, this is inefficient. Even the fact that C++ will convert types is a
  * 		problem, but this is "throwaway" code.
  */
-	String::String(const char *str, uint offset, int bytes): size(0) {
+	String::String(const char *str, uint offset, int bytes): max_size(0) {
 		str_compatible = true;
 		if ( str != nullptr  &&  *str != 0  &&  bytes != 0  &&  offset < strlen(str) ) {
 			if ( bytes < 0  ||  bytes > (int)strlen(str) ) {
@@ -197,15 +197,15 @@ namespace Tools {
 
 		} else {
 			length = 0;
-			size = 0;
+			max_size = 0;
 			text = const_cast<uchar*>(EMPTY);
 		}
 	}
 
-	String::String(const String& string): size(string.size) {
-		if ( !string.IsEmpty() ) {
+	String::String(const String& string): max_size(string.max_size) {
+		if ( !string.isEmpty() ) {
 			str_compatible = true;
-			size = length = string.length;
+			max_size = length = string.length;
 			text = (uchar*)strdup((char*)string.text);
 		} else {
 			text = const_cast<uchar*>(EMPTY);
@@ -241,7 +241,7 @@ namespace Tools {
 
 	bool String::operator==(const char *str) const {
 		if ( str == nullptr  ||  *str == 0 ) {
-			if ( IsEmpty() ) {
+			if ( isEmpty() ) {
 				return true;
 			}
 			return false;
@@ -255,7 +255,7 @@ namespace Tools {
 
 	bool String::operator!=(const char *str) const {
 		if ( str == nullptr  ||  *str == 0) {
-			if ( IsEmpty() ) {
+			if ( isEmpty() ) {
 				return false;
 			}
 			return false;
@@ -279,7 +279,7 @@ namespace Tools {
 	}
 
 	bool String::operator<=(const char *str) const {
-		if ( IsEmpty() ) {
+		if ( isEmpty() ) {
 			return true;
 		}
 		return (compare_fn(text, (const uchar*)str) <= 0);
@@ -290,7 +290,7 @@ namespace Tools {
 	}
 
 	bool String::operator>(const char *str)  const {
-		if ( !IsEmpty()  &&  (str == nullptr  ||  *str == 0) ) {
+		if ( !isEmpty()  &&  (str == nullptr  ||  *str == 0) ) {
 			return true;
 		}
 		return (compare_fn(text, (const uchar*)str) > 0);
@@ -301,7 +301,7 @@ namespace Tools {
 	}
 
 	bool String::operator<(const char *str)  const {
-		if ( IsEmpty()  &&  (str != nullptr  &&  *str != 0) ) {
+		if ( isEmpty()  &&  (str != nullptr  &&  *str != 0) ) {
 			return true;
 		}
 		return (compare_fn(text, (const uchar*)str) < 0);
@@ -314,24 +314,26 @@ namespace Tools {
 	String& String::operator=(const char *str) {
 		if ( str != nullptr  &&  *str != 0 ) {
 			length = strlen(str);
-			size = length;
-			text = new uchar[size + 1];
+			max_size = length;
+			text = new uchar[max_size + 1];
 			memcpy(text, str, length);
 			text[length] = 0;
 //FIXME: unit tests need to test for this!
 			str_compatible = true;
 
 		} else {
-			Clear();
+			clear();
 		}
 		return *this;
 	}
 
 	String& String::operator=(const String& string) {
-		if ( !string.IsEmpty() ) {
+		if ( !string.isEmpty() ) {
+
 			if ( text != nullptr  &&  text != EMPTY ) {
 				delete [] text;
 			}
+
 			length = string.length;
 			text = new uchar[length + 1];
 			memcpy(text, string.text, length);
@@ -340,7 +342,7 @@ namespace Tools {
 			str_compatible = string.str_compatible;
 
 		} else {
-			Clear();
+			clear();
 		}
 		return *this;
 	}
@@ -348,15 +350,18 @@ namespace Tools {
 	String& String::operator+=(const char *str) {
 		if ( str != nullptr  &&  *str != 0 ) {
 			int len = strlen(str);
-			if ( length + len >= size ) {
-				size = length + len + BUFFER_SIZE;
+			if ( length + len >= max_size ) {
+
+				max_size = length + len + BUFFER_SIZE;
 				if ( text != nullptr  &&  text != EMPTY ) {
 					delete [] text;
 				}
-				text = new uchar[size + 1];
-				strncpy((char*)text, str, size);
-				text[size] = 0;
+
+				text = new uchar[max_size + 1];
+				strncpy((char*)text, str, max_size);
+				text[max_size] = 0;
 			}
+
 			length += len;
 			strncat((char*)text, str, len);
 			text[length] = 0;
@@ -365,22 +370,43 @@ namespace Tools {
 	}
 
 	String& String::operator+=(const String& string) {
-		if ( !string.IsEmpty() ) {
-			// int len = strlen(str);
-			if ( length + string.length >= size ) {
-				uint new_size = length + string.length + BUFFER_SIZE;
-				uchar *tmps = new uchar [new_size];
-				memset(tmps, 0, new_size);
-				memcpy(tmps, text, length);
-				if ( text != nullptr  &&  text != EMPTY ) {
-					delete [] text;
-				}
-				text = tmps;
-				size = new_size;
+		if ( !string.isEmpty() ) {
+
+			if ( text == nullptr  ||  text == EMPTY ) {
+				uchar *new_text = new uchar[length + string.length + 1];
+				memset(new_text, 0, length + BUFFER_SIZE + 1);
+				max_size = length + BUFFER_SIZE;
+				length = 0;
+				memcpy(new_text, text, length);
+				memcpy(new_text + length, string.text, string.length);
+				delete [] text;
+				text = new_text;
+				length += string.length;
+				text[length] = 0;
+
+			} else {
+				text = new uchar[string.length + 1];
+				memset(text, 0, string.length + 1);
+				memcpy(text, string.text, length);
+				length = string.length;
+				text[length] = 0;
 			}
-			memcpy(text + length, string.text, string.length);
-			length += string.length;
-			text[length] = 0;
+			// if ( length + string.length >= max_size ) {
+			// 	uint new_size = length + string.length + BUFFER_SIZE;
+			// 	uchar *tmps = new uchar [new_size];
+			// 	memset(tmps, 0, new_size);
+			// 	memcpy(tmps, text, length);
+			// 	if ( text != nullptr  &&  text != EMPTY ) {
+			// 		delete [] text;
+			// 	}
+
+			// 	text = tmps;
+			// 	max_size = new_size;
+			// }
+
+			// memcpy(text + length, string.text, string.length);
+			// length += string.length;
+			// text[length] = 0;
 		}
 		return *this;
 	}
@@ -414,7 +440,7 @@ namespace Tools {
 	}
 
 	String String::operator+(const String& string) const {
-		if ( !string.IsEmpty() ) {
+		if ( !string.isEmpty() ) {
 			char tmps[length + string.length + 1];
 			snprintf(tmps, sizeof(tmps), "%s%s", text, string.text);
 			return tmps;
@@ -423,27 +449,71 @@ namespace Tools {
 			return *this;
 		}
 	}
+	bool operator==(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) == 0);
+	}
+	bool operator!=(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) != 0);
+	}
+	bool operator>=(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) >= 0);
+	}
+	bool operator<=(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) <= 0);
+	}
+	bool operator>(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) > 0);
+	}
+	bool operator<(const char* str, const String& string) {
+		if ( (str == nullptr  ||  *str == 0)  ||  string.isEmpty() ) {
+			return false;
+		}
+		return (string.compare_fn((const unsigned char*)str, string.getText()) < 0);
+	}
+	String operator+(const char *str, const String& string) {
+		char tmps[strlen(str) + string.length + 1];
+		snprintf(tmps, sizeof(tmps), "%s%s", str, string.text);
+		return tmps;
+	}
+
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-	void String::SetCaseCompare(bool ignore) {
+	void String::setCaseCompare(bool ignore) {
 		compare_fn = (ignore? my_strcasecmp: my_strcmp);
 		strsub_fn = (ignore? strcasesub: strsub);
+
 		if ( ignore ) {
 			strstr_fn = my_strcasestr;
+
 		} else {
 			strstr_fn = my_strstr;
 		}
 	}
 
-	bool String::StartsWith(const String& string, uint starting_at) const {
+	bool String::startsWith(const String& string, uint starting_at) const {
 		return strsub_fn(text + starting_at, string.text);
 	}
 
-	bool String::Contains(const String& sub) const {
+	bool String::contains(const String& sub) const {
 		return ( strstr_fn(text, sub.text) != nullptr );
 	}
 
-	std::vector<String> String::Split(char key) const {
+	std::vector<String> String::split(char key) const {
 		std::vector<String> strings;
 		uchar *head = text;
 		uchar *tail = text;
@@ -452,15 +522,79 @@ namespace Tools {
 			if ( *head != key ) {
 				head++;
 			} else {
-				strings.push_back(String((char*)tail, 0, head - tail + 1));
+				// strings.push_back(String((char*)tail, 0, head - tail + 1));
+				strings.push_back(String((char*)tail, 0, head - tail));
 				tail = ++head; // <-- skip past "key"
 			}
 		}
+
 		if ( tail <= head ) {
 			strings.push_back(String((char*)tail));
 		}
 
 		return strings;
+	}
+
+	String String::stripRight(void) const {
+		uchar tmps[length + 1], *s = tmps + length - 1;
+		memcpy(tmps, text, length + 1);
+
+		while ( s != tmps  &&  isspace(*s) ) {
+			*s-- = 0;
+		}
+
+		return (char*)tmps;
+	}
+
+	String String::strip(void) const {
+		uchar tmps[length + 1], *s = tmps + length - 1;
+		memcpy(tmps, text, length + 1);
+		while ( s != tmps  &&  isspace(*s) ) {
+			*s-- = 0;
+		}
+
+		s = tmps;
+		while ( *s != 0 ) {
+			if ( !isspace(*s) ) {
+				break;
+			}
+			s++;
+		}
+
+		return (char*)s;
+	}
+
+	String String::encode(void) const {
+		char *tmps = new char[length * 4 + 1], *s = tmps;
+		for ( size_t i = 0; i < length; i++ ) {
+			switch ( text[i] ) {
+				case '\r': *s++ = '\\'; *s++ = 'r'; break;
+				case '\n': *s++ = '\\'; *s++ = 'n'; break;
+				case '\f': *s++ = '\\'; *s++ = 'f'; break;
+				case '\b': *s++ = '\\'; *s++ = 'b'; break;
+				case '\t': *s++ = '\\'; *s++ = 't'; break;
+				case '\v': *s++ = '\\'; *s++ = 'v'; break;
+				case '\a': *s++ = '\\'; *s++ = 'a'; break;
+				case '\e': *s++ = '\\'; *s++ = 'e'; break;
+				// case  '"': *s++ = '\\'; *s++ = '"'; break;
+				default:
+					if ( ' ' <= text[i]  &&  text[i] <= '~' ) {
+						*s++ = text[i];
+
+					} else {
+						static const char *hex_alpha = "0123456789ABCDEF";
+						*s++ = '\\';
+						*s++ = 'x';
+						*s++ = hex_alpha[(text[i] >> 4) & 0xF];
+						*s++ = hex_alpha[text[i] & 0xF];
+					}
+					break;
+			}
+		}
+		*s = 0;
+		String string(tmps);
+		delete [] tmps;
+		return string;
 	}
 
 	static int testNull(const uchar *str, const uchar *sub) {
@@ -477,13 +611,13 @@ namespace Tools {
 
 	void String::resize(uint new_length) {
 		if ( text == nullptr  ||  text == EMPTY ) {
-			text = new uchar[size];
-			memset(text, 0, size);
+			text = new uchar[max_size];
+			memset(text, 0, max_size);
 
-		} else if ( new_length > size ) {
-			size = new_length + BUFFER_SIZE;
-			uchar *tmps = new uchar[size + 1];
-			memset(tmps, 0, size + 1);
+		} else if ( new_length > max_size ) {
+			max_size = new_length + BUFFER_SIZE;
+			uchar *tmps = new uchar[max_size + 1];
+			memset(tmps, 0, max_size + 1);
 			memcpy(tmps, text, length);
 			length = new_length;
 			delete [] text;
@@ -531,12 +665,12 @@ namespace Tools {
 		}
 	}
 
-	String String::FormatString(const String& fmt, ...) {
+	String String::formatString(const String& fmt, ...) {
 		va_list ap;
 
 	//--- Calculate number of bytes
 		va_start(ap, fmt);
-		uint len = vsnprintf(nullptr, 0, (char*)fmt.GetText(), ap);
+		uint len = vsnprintf(nullptr, 0, (char*)fmt.getText(), ap);
 		va_end(ap);
 
 	//--- Create buffer
@@ -544,7 +678,7 @@ namespace Tools {
 
 	//--- Fill
 		va_start(ap, fmt);
-		vsnprintf(buffer, sizeof(buffer), (char*)fmt.GetText(), ap);
+		vsnprintf(buffer, sizeof(buffer), (char*)fmt.getText(), ap);
 		va_end(ap);
 
 		return buffer;
@@ -552,7 +686,7 @@ namespace Tools {
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 	FILE *fopen(const String& filename, const String& permissions) {
-		return fopen((char*)filename.GetText(), (char*)permissions.GetText());
+		return ::fopen((char*)filename.getText(), (char*)permissions.getText());
 	}
 
 	bool fgets(String& buffer, FILE *fp) {
@@ -562,6 +696,6 @@ namespace Tools {
 				buffer += line;
 			}
 		} while ( result != nullptr  &&  !strchr(line, '\n') );
-		return (buffer.IsEmpty());
+		return (buffer.isEmpty());
 	}
 }

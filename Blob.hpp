@@ -28,7 +28,7 @@ void ALERT(const char *fmt, ...);
 			char tmps[1024]; \
 			snprintf(tmps, sizeof(tmps), "%s[%d]:" fmt, __FUNCTION__, __LINE__, __VA_ARGS__); \
 			throw String(tmps); \
-			}
+		}
 #define ERROR(fmt,...) fprintf(stderr, VT220_RED "ERROR!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
 #define ALERT(fmt,...) fprintf(stderr, VT220_YELLOW "ALERT!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
 
@@ -41,7 +41,7 @@ namespace Tools {
 
 	class Class {
 		public:
-			virtual String ToString(void) const = 0;
+			virtual String toString(void) const = 0;
 			friend std::ostream& operator<<(std::ostream& stream, const Class& object);
 	};
 
@@ -70,12 +70,12 @@ namespace Tools {
 			bool operator==(const char *str);
 			bool operator==(const Blob& blob);
 /*test*/	uchar operator[](uint index) const;
-/*test*/	void Clear(void);
-/*test*/	bool IsEmpty(void) const          			{ return (length == 0); }
-/*test*/	size_t GetLength(void) const 				{ return length; }
-/*test*/	const uchar *GetText(void) const 			{ return text; }
-/**/		String HexDump(void) const;
-/*test*/	String ToString(void) const;
+/*test*/	void clear(void);
+/*test*/	bool isEmpty(void) const          			{ return (length == 0); }
+/*test*/	size_t getLength(void) const 				{ return length; }
+/*test*/	const uchar *getText(void) const 			{ return text; }
+/**/		String hexDump(void) const;
+/*test*/	String toString(void) const;
 
 		private:
 			void copy(const uchar *str, size_t length, bool str_compatible);
@@ -84,7 +84,7 @@ namespace Tools {
 	class String: public Blob {
 		private:
 			const int BUFFER_SIZE = 250;
-			uint size = 0;
+			uint max_size = 0;
 
 		private:
 			static const unsigned char *my_strstr(const unsigned char *str, const unsigned char *sub);
@@ -98,7 +98,7 @@ namespace Tools {
 /*tested*/	const uchar* (*strstr_fn)(const uchar*, const uchar*) = my_strstr;
 
 		public:
-/*tested*/	String(void): Blob(), size(0) {}
+/*tested*/	String(void): Blob(), max_size(0) {}
 /*tested*/	String(const char *str, uint offset = 0, int bytes = -1);
 /*tested*/  String(int128_t value, uint radix = 10);
 /*tested*/	String(const String& string);
@@ -107,58 +107,27 @@ namespace Tools {
 		public: //--- Operator overloads
 /*tested*/	bool operator==(const char *str) const;
 /*tested*/	bool operator==(const String& string) const;
-/*tested*/	friend bool operator==(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) == 0);
-			}
+/*tested*/	friend bool operator==(const char* str, const String& string);
 
 /*tested*/	bool operator!=(const char *str) const;
 /*tested*/	bool operator!=(const String& string) const;
-/*tested*/	friend bool operator!=(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) != 0);
-			}
+/*tested*/	friend bool operator!=(const char* str, const String& string);
 
 /*tested*/	bool operator>=(const char *str) const;
 /*tested*/	bool operator>=(const String& string) const;
-/*tested*/	friend bool operator>=(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) >= 0);
-			}
+/*tested*/	friend bool operator>=(const char* str, const String& string);
 
 /*tested*/	bool operator<=(const char *str) const;
 /*tested*/	bool operator<=(const String& string) const;
-/*tested*/	friend bool operator<=(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) <= 0);
-			}
+/*tested*/	friend bool operator<=(const char* str, const String& string);
 
 /*tested*/	bool operator>(const char *str)  const;
 /*tested*/	bool operator>(const String& string)  const;
-/*tested*/	friend bool operator>(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) > 0);
-			}
+/*tested*/	friend bool operator>(const char* str, const String& string);
 
 /*tested*/	bool operator<(const char *str)  const;
 /*tested*/	bool operator<(const String& string)  const;
-/*tested*/	friend bool operator<(const char* str, const String& string) {
-				if ( (str == nullptr  ||  *str == 0)  ||  string.IsEmpty() ) {
-					return false;
-				}
-				return (string.compare_fn((const unsigned char*)str, string.GetText()) < 0);
-			}
-
+/*tested*/	friend bool operator<(const char* str, const String& string);
 
 /*tested*/	String& operator=(const char *str);
 /*tested*/	String& operator=(const String& string);
@@ -166,39 +135,60 @@ namespace Tools {
 /*untested*/String& operator+=(const String& string);
 /*tested*/	String  operator+(const char *str) const;
 /*tested*/	String  operator+(const String& string) const;
-/**/		friend std::ostream& operator<<(std::ostream& stream, const Class& object) {
-				stream << object.ToString();
-				return stream;
-			}
-/**/		friend std::ostream& operator<<(std::ostream& stream, const String& string) {
-				stream << string.GetText();
-				return stream;
-			}
-/*tested*/	friend String operator+(const char *str, const String& string) {
-				char tmps[strlen(str) + string.length + 1];
-				snprintf(tmps, sizeof(tmps), "%s%s", str, string.text);
-				return tmps;
-			}
+/**/		friend std::ostream& operator<<(std::ostream& stream, const Class& object) { return stream << object.toString(); }
+/**/		friend std::ostream& operator<<(std::ostream& stream, const String& string) { return stream << string.getText(); }
+/*tested*/	friend String operator+(const char *str, const String& string);
+
+		public: //--- test methods
+/*tested*/	bool startsWith(const String& sub, uint starting_at = 0) const;
+/*tested*/	bool contains(const String& sub) const;
 
 		public: //--- manipulation methods
-/*tested*/	bool StartsWith(const String& sub, uint starting_at = 0) const;
-/*tested*/	bool Contains(const String& sub) const;
-/**/		String ToString(void) const override		{ return *this; }
-/*tested*/	std::vector<String> Split(char key) const;
+/*tested*/	std::vector<String> split(char key) const;
+			String encode(void) const;
+/**/		String stripRight(void) const;
+/**/		String strip(void) const;
 
 		public: //--- getters/setters
-/*tested*/	uint GetSize(void) const        			{ return size; }
-/*tested*/	void SetCaseCompare(bool ignore);
+/**/		String toString(void) const override		{ return *this; }
+/*tested*/	uint getSize(void) const        			{ return max_size; }
+/*tested*/	void setCaseCompare(bool ignore);
 
 		private:
 /*BORKED*/	void resize(uint new_size);
 
 		public:
-/*BORKED*/	static String FormatString(const String& fmt, ...);
+/*BORKED*/	static String formatString(const String& fmt, ...);
 	};
 
 	FILE *fopen(const String& filename, const String& permissions);
 	bool fgets(String& buffer, FILE *fp);
+
+	class File {
+		public:
+			static String readFile(const String& filename) {
+			    FILE *fp = fopen(filename, "r");
+				if (fp != NULL) {
+					fseek(fp, 0, SEEK_END);
+					size_t file_size = ftell(fp);
+					fseek(fp, 0, SEEK_SET);
+					char *buffer = new char[file_size + 1];
+					size_t bytes_read = fread(buffer, 1, file_size, fp);
+					fclose(fp);
+
+					if ( bytes_read != file_size ) {
+						delete [] buffer;
+						throw String::formatString("Error reading file: expected %ld bytes, read %zu\n", file_size, bytes_read);
+					}
+
+					buffer[file_size] = '\0';
+					return buffer;
+
+				} else {
+					throw String::formatString("Error opening file: %s", filename.getText());
+				}
+			}
+	};
 };
 
 #endif
