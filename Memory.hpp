@@ -9,18 +9,6 @@
 #include <vector>
 #include <iostream>
 
-#define VT220_RESET  "\x1B[0m"
-#define VT220_RED    "\x1B[31m"
-#define VT220_GREEN  "\x1B[32m"
-#define VT220_YELLOW "\x1B[38;5;190m"
-
-typedef unsigned char uchar;
-typedef unsigned int uint;
-typedef __int128_t int128_t;
-typedef int (cmp_fn)(const unsigned char*, const unsigned char*);
-typedef bool (sub_fn)(const unsigned char*, const unsigned char*);
-typedef const unsigned char (str_fn)(const unsigned char*, const unsigned char*);
-
 void THROW_ERROR(const char *fmt, ...);
 void ERROR(const char *fmt, ...);
 void ALERT(const char *fmt, ...);
@@ -32,11 +20,20 @@ void ALERT(const char *fmt, ...);
 #define ERROR(fmt,...) fprintf(stderr, VT220_RED "ERROR!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
 #define ALERT(fmt,...) fprintf(stderr, VT220_YELLOW "ALERT!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
 
+typedef unsigned char uchar;
+typedef unsigned int uint;
+
 template<typename T> T min(T t1, T t2) {
 	return ( t1 < t2? t1: t2 );
 }
 
 namespace Tools {
+	typedef unsigned char uchar;
+	typedef unsigned int uint;
+	typedef int (cmp_fn)(const uchar*, const uchar*);
+	typedef bool (sub_fn)(const uchar*, const uchar*);
+	typedef const uchar* (str_fn)(const uchar*, const uchar*);
+
 	class String;
 
 	class Class {
@@ -45,35 +42,37 @@ namespace Tools {
 			friend std::ostream& operator<<(std::ostream& stream, const Class& object);
 	};
 
-	class Blob: public Class {
+	class Memory: public Class {
 		public:
 			static const uchar *EMPTY;
 
 		protected:
-			uchar *text;
-			size_t length;
-			bool str_compatible = false;
-			static const char *HexAscii;
-			static const char *FullAscii;
+			uchar *mText;
+			size_t mLength;
+			bool mStrCompatible = false;
+			static const char *mHexAscii;
+			static const char *mFullAscii;
 
 		public:
-/*test*/	Blob(void): text(const_cast<uchar*>(EMPTY)), length(0) {}
-/*test*/	Blob(const char *str, size_t bytes = 0, bool is_binary = false);
-/*test*/	Blob(const uchar *str, size_t bytes);
-			Blob(const Blob& blob);
-			virtual ~Blob(void);
+/*test*/	Memory(void): mText(const_cast<uchar*>(EMPTY)), mLength(0) {}
+/*test*/	Memory(const uchar *str, size_t bytes = 0, bool is_binary = false);
+/*test*/	Memory(const char *str, size_t bytes = 0): Memory((uchar*)str, bytes, false) {}
+			Memory(const Memory& blob);
+			virtual ~Memory(void);
 
 		public:
-/*test*/	Blob& operator=(const char *str);
-/*test*/	Blob& operator=(const Blob& blob);
-/*test*/	Blob& operator=(const String& string);
+/*test*/	Memory& operator=(const char *str);
+/*test*/	Memory& operator=(const Memory& blob);
+/*test*/	Memory& operator=(const String& string);
 			bool operator==(const char *str);
-			bool operator==(const Blob& blob);
+			bool operator==(const Memory& blob);
 /*test*/	uchar operator[](uint index) const;
-/*test*/	void clear(void);
-/*test*/	bool isEmpty(void) const          			{ return (length == 0); }
-/*test*/	size_t getLength(void) const 				{ return length; }
-/*test*/	const uchar *getText(void) const 			{ return text; }
+/*test*/	virtual void clear(void);
+
+/*test*/	bool isEmpty(void) const					{ return (mLength == 0); }
+/*test*/	size_t getLength(void) const 				{ return mLength; }
+/*test*/	const uchar *getText(void) const 			{ return mText; }
+/**/		bool isStrCompatible(void) const			{ return mStrCompatible; }
 /**/		String hexDump(void) const;
 /*test*/	String toString(void) const;
 
@@ -81,26 +80,29 @@ namespace Tools {
 			void copy(const uchar *str, size_t length, bool str_compatible);
 	};
 
-	class String: public Blob {
-		private:
-			const int BUFFER_SIZE = 250;
-			uint max_size = 0;
+	class String: public Memory {
+		public:
+			static const uint BUFFER_SIZE = 250;
 
 		private:
-			static const unsigned char *my_strstr(const unsigned char *str, const unsigned char *sub);
-			static const unsigned char *my_strcasestr(const unsigned char *str, const unsigned char *sub);
-			static int my_strcmp(const unsigned char *str1, const unsigned char *str2);
-			static int my_strcasecmp(const unsigned char *str1, const unsigned char *str2);
-/*tested*/	static bool strsub(const uchar *str, const uchar *sub);
-/*tested*/	static bool strcasesub(const uchar *str, const uchar *sub);
-/*tested*/	cmp_fn *compare_fn = my_strcmp;
-/*tested*/	sub_fn *strsub_fn = strsub;
-/*tested*/	const uchar* (*strstr_fn)(const uchar*, const uchar*) = my_strstr;
+			uint mBufferSize = 0;
 
 		public:
-/*tested*/	String(void): Blob(), max_size(0) {}
+			static int my_strcmp(const unsigned char *str1, const unsigned char *str2);
+			static int my_strcasecmp(const unsigned char *str1, const unsigned char *str2);
+			static const unsigned char *my_strstr(const unsigned char *str, const unsigned char *sub);
+			static const unsigned char *my_strcasestr(const unsigned char *str, const unsigned char *sub);
+/*tested*/	static bool strsub(const char *str, const char *sub);
+/*tested*/	static bool strcasesub(const char *str, const char *sub);
+
+		private:
+/*tested*/	cmp_fn *compare_fn = (cmp_fn*)my_strcmp;
+/*tested*/	sub_fn *strsub_fn = (sub_fn*)strsub;
+/*tested*/	str_fn *strstr_fn = (str_fn*)my_strstr;
+
+		public:
+/*tested*/	String(void): Memory(), mBufferSize(BUFFER_SIZE) {}
 /*tested*/	String(const char *str, uint offset = 0, int bytes = -1);
-/*tested*/  String(int128_t value, uint radix = 10);
 /*tested*/	String(const String& string);
 /*tested*/	virtual ~String(void) {}
 
@@ -135,30 +137,34 @@ namespace Tools {
 /*untested*/String& operator+=(const String& string);
 /*tested*/	String  operator+(const char *str) const;
 /*tested*/	String  operator+(const String& string) const;
+/*tested*/	friend String operator+(const char *str, const String& string);
 /**/		friend std::ostream& operator<<(std::ostream& stream, const Class& object) { return stream << object.toString(); }
 /**/		friend std::ostream& operator<<(std::ostream& stream, const String& string) { return stream << string.getText(); }
-/*tested*/	friend String operator+(const char *str, const String& string);
 
 		public: //--- test methods
 /*tested*/	bool startsWith(const String& sub, uint starting_at = 0) const;
 /*tested*/	bool contains(const String& sub) const;
 
 		public: //--- manipulation methods
+/*tested*/	virtual void clear(void) override;
 /*tested*/	std::vector<String> split(char key) const;
-			String encode(void) const;
-/**/		String stripRight(void) const;
-/**/		String strip(void) const;
+/*tested*/	String encode(void) const;
+/*tested*/	String trimRight(void) const;
+/*tested*/	String trimLeft(void) const;
+/*tested*/	String trim(void) const;
+/**/	static String toString(long long value, uint radix = 10);
 
 		public: //--- getters/setters
-/**/		String toString(void) const override		{ return *this; }
-/*tested*/	uint getSize(void) const        			{ return max_size; }
+/*tested*/	String toString(void) const override		{ return *this; }
+/*tested*/	uint getBufferSize(void) const				{ return mBufferSize; }
 /*tested*/	void setCaseCompare(bool ignore);
 
 		private:
-/*BORKED*/	void resize(uint new_size);
+/*tested*/	void resize(uint new_size);
 
 		public:
 /*BORKED*/	static String formatString(const String& fmt, ...);
+			static String wideCharToString(wchar_t wchar);
 	};
 
 	FILE *fopen(const String& filename, const String& permissions);

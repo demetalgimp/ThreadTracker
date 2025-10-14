@@ -1,11 +1,12 @@
-#include "Blob.hpp"
+#include <iostream>
+#include "Memory.hpp"
 
 namespace Parser {
     enum EToken {
     //--- All punctuation
         eBang = '!', eDoubleQuote = '"', eHash = '#', eDollar = '$', ePercent = '%', eAmpersand = '&',
         eSingleQuote = '\'', eLeftParenthesis = '(', eRightParenthesis = ')', eAsterix = '*',
-        ePlus = '+', eComma = ',', ehyphen = '-', ePeriod = '.', eSlash = '/',
+        ePlus = '+', eComma = ',', eHyphen = '-', ePeriod = '.', eSlash = '/',
         eColon = ':', eSemicolon = ';', eLeftAngleBracket = '<', eEquals = '=', eRightAngleBracket = '>',
         eQuestionMark = '?', eAt = '@', eLeftBracket = '[', eBackslash = '\\', eRightBracket = ']',
         eCircumflex = '^', eBackQuote = '`', eLeftBrace = '{', eVerticalBar = '|', eRightBrace = '}',
@@ -30,7 +31,7 @@ namespace Parser {
 
     //--- Operands and their punctuation
         eNameResolution = '::',
-        eEmpty = 0, eWord = 'WORD',
+        eEmpty = 0, eWord = 'WORD', eDigit = 'DIGI', eAlphaNumeric = 'ANUM',
         eNumber = '####', eDecimalNumber = '#..#', eHexadecimalNumber = '0x##', eBinaryNumber = '0b##', eFloatingNumber = '#.##', eScientificNumber = '#.e#',
         eQuoted = '""\'\'', eStringConstant = '".."', eCharConstant = '\'..\'',
 
@@ -40,7 +41,7 @@ namespace Parser {
     };
 
 
-#define IS_A(token_specific, token_general) {\
+// #define IS_A(token_specific, token_general) {\
             if ( token_general == eNumber \
                     &&  (token_specific == eDecimalNumber  \
                         ||  token_specific == eNumber  \
@@ -68,7 +69,14 @@ namespace Parser {
             } \
         }
 
-    class Stream {
+//=== Stream (abstract) ======================================================================================
+    class CharStream {
+        protected:
+            uint line_number = 1;
+
+        public:
+            virtual ~CharStream(void) {}
+
         public:
             virtual char peek(int offset=0) = 0;
             // virtual bool peek(const Tools::String& test, Stream& consumer) = 0;
@@ -76,6 +84,7 @@ namespace Parser {
             virtual char current(void) = 0;
             virtual char next(void) = 0;
             virtual void skip(int offset) = 0;
+            // virtual uint getLineNumber(void) const = 0;
 
         public:
             virtual bool isSpace(void) = 0;
@@ -83,13 +92,15 @@ namespace Parser {
             virtual bool isEOF(void) = 0;
     };
 
-    class StringStream: public Stream {
+//=== StringStream =================================================================================
+    class StringStream: public CharStream {
         Tools::String text;
         uint index;
 
         public:
             StringStream(const Tools::String& text): text(text), index(0) {}
             StringStream(const StringStream& stream): text(stream.text), index(stream.index) {}
+            virtual ~StringStream(void) {}
 
         public:
             virtual char peek(int offset=0) override;
@@ -98,6 +109,7 @@ namespace Parser {
             virtual char current(void) override;
             virtual char next(void) override;
             virtual void skip(int offset) override;
+            // virtual uint getLineNumber(void) const override;
 
         public:
             virtual bool isSpace(void) override;
@@ -109,32 +121,37 @@ namespace Parser {
                 fprintf(stderr, "%4d:%s\n", linenum, text.getText());
                 fprintf(stderr, "%4s %*s^\n", "", index, " ");
             }
+            Tools::String toString(void) const {
+                return "[\"" + text + "\": " + Tools::String::toString(index) + "]";
+            }
     };
 
-    class TokenStream {
-        public:
-            struct Token {
-                EToken token_type;
-                Tools::String token_text;
+//=== Token =======================================================================================
+    struct Token {
+        EToken token_type;
+        Tools::String token_text;
 
-                Token(void): token_type(eEmpty) {}
-                Token(char letter);
-                Token(EToken token, const Tools::String& text = "");
+        Token(void): token_type(eEmpty) {}
+        explicit Token(char letter);
+        explicit Token(EToken token, const Tools::String& text = "");
+        explicit Token(wchar_t wchar, const Tools::String& text = ""): token_type((EToken)wchar), token_text(text) {}
+        virtual ~Token(void) {}
 
-                bool isEmpty(void)  { return (token_type == eEmpty); }
-                bool isEOF(void)    { return (token_type == eEOF); }
-                bool isSpace(void)  { return (token_type == eSpace  ||  token_type == eStringConstant  ||  token_type == eLineComment); }
-                operator bool(void) { return (token_type != eEmpty  &&  token_type != eEOF); }
+        bool isEmpty(void)  { return (token_type == eEmpty); }
+        bool isEOF(void)    { return (token_type == eEOF); }
+        bool isSpace(void)  { return (token_type == eSpace  ||  token_type == eStringConstant  ||  token_type == eLineComment); }
+        operator bool(void) { return (token_type != eEmpty  &&  token_type != eEOF); }
 
-                static void wideCharToString(EToken token, char *str);
-                friend std::ostream& operator<<(std::ostream& stream, const Token& token) {
-                    char tmps[5] = {0, 0, 0, 0, 0};
-                    Token::wideCharToString(token.token_type, tmps);
-                    stream << "{\"" << token.token_text.encode() << "\", '" << tmps << "'}";
-                    return stream;
-                }
-            };
+        Tools::String toString(void) const {
+            return "{\"" + token_text + "\", '" + Tools::String::wideCharToString(token_type) + "'}";
+        }
+        friend std::ostream& operator<<(std::ostream& stream, const Token& token) {
+            return stream << token.toString();
+        }
+    };
 
+//=== TokenStream =================================================================================
+    class TokenStream: public Tools::Class {
         private:
             StringStream stream;
             Token current_token;
@@ -144,6 +161,7 @@ namespace Parser {
         public:
             TokenStream(const StringStream& stream): stream(stream) {}
             TokenStream(const Tools::String& string): stream(string) {}
+            virtual ~TokenStream(void) {}
 
         private:
             bool parseWhiteSpace(void);
@@ -157,7 +175,12 @@ namespace Parser {
             bool peek(char token) { return (stream.peek(1) == token); }
             Token next(void);
             Token current(void);
-            Tools::String getWhiteSpace(void) { return whitespace; }
-            Tools::String getText(void) { return whitespace + current_token.token_text; }
+            Tools::String getWhiteSpace(void) { current(); return whitespace; }
+            Tools::String getText(void) { current(); return whitespace + current_token.token_text; }
+
+        public:
+            Tools::String toString(void) const {
+                return "[" + stream.toString() + " : " + current_token.toString() + " WS<" + whitespace + ">]";
+            }
     };
 }

@@ -48,7 +48,7 @@ static const char *test_elements_str =
 
 void test_scanner(const Tools::String& string) {
     Parser::TokenStream stream(string);
-    Parser::TokenStream::Token token;
+    Parser::Token token;
     Tools::String accumulator;
     while ( !(token = stream.next()).isEOF() ) {
         std::cerr << token;
@@ -82,14 +82,14 @@ void test_scanner(const Tools::String& string) {
 //     const char *method_name;
 //     uint linenum;
 // };
-static const char *__WEAVER_FN_HEADER__ =
-            "{"
-                "struct __threadtracker_thread_state__ __tts__ = {"
-                        ".method_name = \"__FUNCTION__\", "
-                        ".linenum = __LINE__ "
-                "};"
-                "register_thread(&__tts__);"
-            "}";
+// static const char *__WEAVER_FN_HEADER__ =
+//             "{"
+//                 "struct __threadtracker_thread_state__ __tts__ = {"
+//                         ".method_name = \"__FUNCTION__\", "
+//                         ".linenum = __LINE__ "
+//                 "};"
+//                 "register_thread(&__tts__);"
+//             "}";
 
 void weave(const Tools::String& input_file, Tools::String& output) {
     // Tools::String source = Tools::File::readFile(input_file);
@@ -106,8 +106,8 @@ void weave(const Tools::String& input_file, Tools::String& output) {
     Parser::TokenStream stream(source);
     // Tools::String woven = stream.weave();
     // Tools::File::writeFile(output, woven);
-    bool in_function = false;
-    uint brace_count = 0;
+    // bool in_function = false;
+    // uint brace_count = 0;
     while ( !(stream.current().isEOF()) ) {
         Tools::String whole_token = stream.getWhiteSpace().encode() + stream.current().token_text;
         output += whole_token;
@@ -188,6 +188,7 @@ fprintf(stderr, "!!!%s[%d]:[%s]\n", __FILE__, __LINE__, whole_token.getText());
     output += "\n";
 }
 
+#ifndef UNITTESTS_ONLY
 int main(int cnt, char *args[]) {
     if ( cnt > 1  &&  Tools::String(args[1]) == "--test" ) {
         test_scanner(test_elements_str);
@@ -207,3 +208,4 @@ int main(int cnt, char *args[]) {
     //     }
     // }
 }
+#endif

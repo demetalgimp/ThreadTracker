@@ -24,6 +24,9 @@ namespace Parser {
     }
 
     char StringStream::next(void) {
+        if ( current() == '\n' ) {
+            line_number++;
+        }
         char c = ( index < text.getLength()? text[++index]: -1 );
         return c;
     }
@@ -51,25 +54,23 @@ namespace Parser {
     }
 
 //=== Token =======================================================================================
-    TokenStream::Token::Token(char letter): token_type((EToken)letter) {
+    Token::Token(char letter): token_type((EToken)letter) {
         char tmps[2] = {letter, 0};
         token_text = tmps;
     }
 
-    void TokenStream::Token::wideCharToString(EToken token, char *str) {
-        for ( int i = 3; i >= 0; i-- ) {
-            char c = (char)((token >> (i << 3)) & 0xFF);
-            if ( c != 0 ) {
-                *str++ = c;
-            }
-        }
-    }
+    // void TokenStream::Token::wideCharToString(EToken token, char *str) {
+    //     for ( int i = 3; i >= 0; i-- ) {
+    //         char c = (char)((token >> (i << 3)) & 0xFF);
+    //         if ( c != 0 ) {
+    //             *str++ = c;
+    //         }
+    //     }
+    // }
 
-    TokenStream::Token::Token(EToken token, const Tools::String& text): token_type(token) {
+    Token::Token(EToken token, const Tools::String& text): token_type(token) {
         if ( text.isEmpty() ) {
-            char tmps[5] = {0, 0, 0, 0, 0};
-            wideCharToString(token, tmps);
-            this->token_text = tmps;
+            this->token_text = Tools::String::wideCharToString(token);
 
         } else {
             this->token_text = text;
@@ -232,7 +233,7 @@ namespace Parser {
         current_token = Token( (end_of_string == '"'? eStringConstant: eCharConstant), tmps);
     }
 
-    TokenStream::Token TokenStream::next(void) {
+    Token TokenStream::next(void) {
         current_token = Token(eEOF);
         // parseWhiteSpace();
         whitespace.clear();
@@ -465,7 +466,7 @@ namespace Parser {
         return current_token;
     }
 
-    TokenStream::Token TokenStream::current(void) {
+    Token TokenStream::current(void) {
         if ( current_token.token_type == eEmpty ) {
             return next();
 
