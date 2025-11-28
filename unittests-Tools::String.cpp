@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "Memory.hpp"
+#include "Blob.hpp"
 #include "UnitTests.hpp"
 
 #define STRING_TEST_100_CHARS  "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
@@ -11,7 +11,7 @@ namespace UnitTests {
 	void unittests_Memory(void) {
 	//--- Memory(void): mText(const_cast<uchar*>(EMPTY)), mLength(0) {}
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
@@ -19,32 +19,32 @@ namespace UnitTests {
 		}
 	//--- Memory(const char *str, size_t bytes = 0, bool is_binary = false);
 		{
-			Tools::Memory memory((uchar*)nullptr);
+			Tools::Blob memory((uchar*)nullptr);
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(!memory.isStrCompatible());
 
-			Tools::Memory memory2("");
+			Tools::Blob memory2("");
 			UNITTEST_EQUALS((const char*)memory2.getText(), "");
 			UNITTEST_EQUALS(memory2.getLength(), 0u);
 			UNITTEST_ASSERT(memory2.getText() != nullptr);
 			UNITTEST_ASSERT(memory2.isStrCompatible());
 
-			Tools::Memory memory3("1234567890");
+			Tools::Blob memory3("1234567890");
 			UNITTEST_EQUALS((const char*)memory3.getText(), "1234567890");
 			UNITTEST_EQUALS(memory3.getLength(), 10u);
 			UNITTEST_ASSERT(memory3.getText() != nullptr);
 			UNITTEST_ASSERT(memory3.isStrCompatible());
 
-			Tools::Memory memory4("1234567890", 5);
+			Tools::Blob memory4("1234567890", 5);
 			UNITTEST_EQUALS((const char*)memory4.getText(), "12345");
 			UNITTEST_EQUALS(memory4.getLength(), 5u);
 			UNITTEST_ASSERT(memory4.getText() != nullptr);
 			UNITTEST_ASSERT(memory4.isStrCompatible());
 
 			const uchar test_data[] = { '1', '2', '3', '4', '5', 0, 6, 7, 8, 9, 10 };
-			Tools::Memory memory5(test_data, sizeof(test_data), true);
+			Tools::Blob memory5(test_data, sizeof(test_data), true);
 			UNITTEST_EQUALS(memcmp(memory5.getText(), test_data, sizeof(test_data)), 0);
 			UNITTEST_EQUALS(memory5.getLength(), sizeof(test_data));
 			UNITTEST_ASSERT(memory5.getText() != nullptr);
@@ -52,32 +52,32 @@ namespace UnitTests {
 		}
 	//--- Memory(const uchar *str, size_t bytes);
 		{
-			Tools::Memory memory((uchar*)nullptr, 0);
+			Tools::Blob memory((uchar*)nullptr, 0);
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(!memory.isStrCompatible());
 
-			Tools::Memory memory2((const uchar*)"", 0);
+			Tools::Blob memory2((const uchar*)"", 0);
 			UNITTEST_EQUALS((const char*)memory2.getText(), "");
 			UNITTEST_EQUALS(memory2.getLength(), 0u);
 			UNITTEST_ASSERT(memory2.getText() != nullptr);
 			UNITTEST_ASSERT(memory2.isStrCompatible());
 
-			Tools::Memory memory3((const uchar*)"1234567890", 10);
+			Tools::Blob memory3((const uchar*)"1234567890", 10);
 			UNITTEST_EQUALS((const char*)memory3.getText(), "1234567890");
 			UNITTEST_EQUALS(memory3.getLength(), 10u);
 			UNITTEST_ASSERT(memory3.getText() != nullptr);
 			UNITTEST_ASSERT(memory3.isStrCompatible());
 
-			Tools::Memory memory4((const uchar*)"1234567890", 5);
+			Tools::Blob memory4((const uchar*)"1234567890", 5);
 			UNITTEST_EQUALS((const char*)memory4.getText(), "12345");
 			UNITTEST_EQUALS(memory4.getLength(), 5u);
 			UNITTEST_ASSERT(memory4.getText() != nullptr);
 			UNITTEST_ASSERT(memory4.isStrCompatible());
 
 			const uchar test_data[] = { '1', '2', '3', '4', '5', 0, 6, 7, 8, 9, 10 };
-			Tools::Memory memory5(test_data, sizeof(test_data), true);
+			Tools::Blob memory5(test_data, sizeof(test_data), true);
 			UNITTEST_EQUALS(memcmp(memory5.getText(), test_data, sizeof(test_data)), 0);
 			UNITTEST_EQUALS(memory5.getLength(), sizeof(test_data));
 			UNITTEST_ASSERT(memory5.getText() != nullptr);
@@ -85,23 +85,23 @@ namespace UnitTests {
 		}
 	//--- Memory(const Memory& blob);
 		{
-			Tools::Memory memory("1234567890");
-			Tools::Memory memory2(memory);
+			Tools::Blob memory("1234567890");
+			Tools::Blob memory2(memory);
 			UNITTEST_EQUALS((const char*)memory2.getText(), "1234567890");
 			UNITTEST_EQUALS(memory2.getLength(), 10u);
 			UNITTEST_ASSERT(memory2.getText() != nullptr);
 			UNITTEST_ASSERT(memory2.isStrCompatible());
 
-			Tools::Memory memory3;
-			Tools::Memory memory4(memory3);
+			Tools::Blob memory3;
+			Tools::Blob memory4(memory3);
 			UNITTEST_EQUALS((const char*)memory4.getText(), "");
 			UNITTEST_EQUALS(memory4.getLength(), 0u);
 			UNITTEST_ASSERT(memory4.getText() != nullptr);
 			UNITTEST_ASSERT(!memory4.isStrCompatible());
 
 			const uchar test_data[] = { '1', '2', '3', '4', '5', 0, 6, 7, 8, 9, 10 };
-			Tools::Memory memory5(test_data, sizeof(test_data), true);
-			Tools::Memory memory6(memory5);
+			Tools::Blob memory5(test_data, sizeof(test_data), true);
+			Tools::Blob memory6(memory5);
 			UNITTEST_EQUALS(memcmp(memory6.getText(), test_data, sizeof(test_data)), 0);
 			UNITTEST_EQUALS(memory6.getLength(), sizeof(test_data));
 			UNITTEST_ASSERT(memory6.getText() != nullptr);
@@ -109,7 +109,7 @@ namespace UnitTests {
 		}
 	//--- Memory& operator=(const char *str);
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			memory = nullptr;
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
@@ -133,20 +133,20 @@ namespace UnitTests {
 		}
 	//--- Memory& operator=(const Memory& blob);
 		{
-			Tools::Memory memory;
-			Tools::Memory memory2("1234567890");
+			Tools::Blob memory;
+			Tools::Blob memory2("1234567890");
 			memory = memory2;
 			UNITTEST_EQUALS((const char*)memory.getText(), "1234567890");
 			UNITTEST_EQUALS(memory.getLength(), 10u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(memory.isStrCompatible());
-			memory = Tools::Memory();
+			memory = Tools::Blob();
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(!memory.isStrCompatible());
 			const uchar test_data[] = { '1', '2', '3', '4', '5', 0, 6, 7, 8, 9, 10 };
-			Tools::Memory memory3(test_data, sizeof(test_data), true);
+			Tools::Blob memory3(test_data, sizeof(test_data), true);
 			memory = memory3;
 			UNITTEST_EQUALS(memcmp(memory.getText(), test_data, sizeof(test_data)), 0);
 			UNITTEST_EQUALS(memory.getLength(), sizeof(test_data));
@@ -155,20 +155,20 @@ namespace UnitTests {
 		}
 	//--- Memory& operator=(const String& string);
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			Tools::String string("1234567890");
 			memory = string;
 			UNITTEST_EQUALS((const char*)memory.getText(), "1234567890");
 			UNITTEST_EQUALS(memory.getLength(), 10u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(memory.isStrCompatible());
-			memory = Tools::Memory();
+			memory = Tools::Blob();
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			UNITTEST_ASSERT(!memory.isStrCompatible());
 			const uchar test_data[11] = { '1', '2', '3', '4', '5', 0, 6, 7, 8, 9, 10 };
-			Tools::Memory memory3(test_data, sizeof(test_data), true);
+			Tools::Blob memory3(test_data, sizeof(test_data), true);
 			Tools::String string2((const char*)memory3.getText(), 0, memory3.getLength());
 			memory = string2;
 			UNITTEST_EQUALS(memcmp(memory.getText(), test_data, sizeof(test_data)), -1); // <-- Because of the embedded null byte
@@ -178,11 +178,11 @@ namespace UnitTests {
 		}
 	//--- bool operator==(const char *str);
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			UNITTEST_ASSERT(memory == nullptr);
 			UNITTEST_ASSERT(memory == "");
 			UNITTEST_ASSERT(!(memory == "A"));
-			Tools::Memory memory2("1234567890");
+			Tools::Blob memory2("1234567890");
 			UNITTEST_ASSERT(!(memory2 == nullptr));
 			UNITTEST_ASSERT(!(memory2 == ""));
 			UNITTEST_ASSERT(memory2 == "1234567890");
@@ -191,27 +191,27 @@ namespace UnitTests {
 		}
 	//--- bool operator==(const Memory& blob);
 		{
-			Tools::Memory memory;
-			Tools::Memory memory2;
+			Tools::Blob memory;
+			Tools::Blob memory2;
 			UNITTEST_ASSERT(memory == memory2);
-			Tools::Memory memory3("1234567890");
+			Tools::Blob memory3("1234567890");
 			UNITTEST_ASSERT(!(memory3 == memory));
-			Tools::Memory memory4("1234567890");
+			Tools::Blob memory4("1234567890");
 			UNITTEST_ASSERT(memory3 == memory4);
-			Tools::Memory memory5("123456789");
+			Tools::Blob memory5("123456789");
 			UNITTEST_ASSERT(!(memory3 == memory5));
-			Tools::Memory memory6("A");
+			Tools::Blob memory6("A");
 			UNITTEST_ASSERT(!(memory3 == memory6));
-			Tools::Memory memory7("B");
+			Tools::Blob memory7("B");
 			UNITTEST_ASSERT(!(memory3 == memory7));
-			Tools::Memory memory8("C");
+			Tools::Blob memory8("C");
 			UNITTEST_ASSERT(!(memory3 == memory8));
 		}
 	//--- uchar operator[](uint index) const;
-		{	Tools::Memory memory;
+		{	Tools::Blob memory;
 			UNITTEST_EQUALS(memory[0], 255); // <-- 255 == uchar(-1)
 		}
-		{	Tools::Memory memory("1234567890");
+		{	Tools::Blob memory("1234567890");
 			UNITTEST_EQUALS(memory[0], '1');
 			UNITTEST_EQUALS(memory[9], '0');
 			UNITTEST_EQUALS(memory[10], 255); // <-- 255 == uchar(-1)
@@ -220,7 +220,7 @@ namespace UnitTests {
 
 	//--- void clear(void);
 		{
-			Tools::Memory memory("1234567890");
+			Tools::Blob memory("1234567890");
 			UNITTEST_EQUALS((const char*)memory.getText(), "1234567890");
 			UNITTEST_EQUALS(memory.getLength(), 10u);
 			UNITTEST_ASSERT(memory.getText() != nullptr);
@@ -233,7 +233,7 @@ namespace UnitTests {
 		}
 	//--- bool isEmpty(void) const
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			UNITTEST_ASSERT(memory.isEmpty());
 			memory = "1234567890";
 			UNITTEST_ASSERT(!memory.isEmpty());
@@ -242,7 +242,7 @@ namespace UnitTests {
 		}
 	//--- size_t getLength(void) const
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			UNITTEST_EQUALS(memory.getLength(), 0u);
 			memory = "1234567890";
 			UNITTEST_EQUALS(memory.getLength(), 10u);
@@ -251,7 +251,7 @@ namespace UnitTests {
 		}
 	//--- const uchar *getText(void) const
 		{
-			Tools::Memory memory;
+			Tools::Blob memory;
 			UNITTEST_EQUALS((const char*)memory.getText(), "");
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 			memory = "1234567890";
@@ -262,7 +262,7 @@ namespace UnitTests {
 			UNITTEST_ASSERT(memory.getText() != nullptr);
 		}
 	//--- Tools::String Tools::Memory::hexDump(void) const; -------------------------------------------------------------------
-		{	static const Tools::Memory sample_text(
+		{	static const Tools::Blob sample_text(
 					"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyzA"
 					"BCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ab"
 					"cdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLM"
@@ -329,19 +329,87 @@ namespace UnitTests {
 	}
     void unittests_String(void) {
 	//--- static int my_strcmp(const unsigned char *str1, const unsigned char *str2);
-		{}
+		{
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"abc", (const unsigned char*)"abc") == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"abc", (const unsigned char*)"abcd") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"abcd", (const unsigned char*)"abc") > 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"", (const unsigned char*)"") == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"", (const unsigned char*)"a") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"a", (const unsigned char*)"") > 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)nullptr, (const unsigned char*)nullptr) == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)nullptr, (const unsigned char*)"a") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcmp((const unsigned char*)"a", (const unsigned char*)nullptr) > 0);
+		}
 	//--- static int my_strcasecmp(const unsigned char *str1, const unsigned char *str2);
-		{}
+		{
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"abc", (const unsigned char*)"abc") == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"abc", (const unsigned char*)"ABCD") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"ABCD", (const unsigned char*)"abc") > 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"", (const unsigned char*)"") == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"", (const unsigned char*)"A") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"a", (const unsigned char*)"") > 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)nullptr, (const unsigned char*)nullptr) == 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)nullptr, (const unsigned char*)"a") < 0);
+			UNITTEST_ASSERT(Tools::String::my_strcasecmp((const unsigned char*)"a", (const unsigned char*)nullptr) > 0);
+		}
 	//--- static const unsigned char *my_strstr(const unsigned char *str, const unsigned char *sub);
-		{}
+		{
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)"is a test") == (const unsigned char*)"is a test");
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)"was a test") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)"this is a test") == (const unsigned char*)"this is a test");
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)"this is a test ") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)"") == (const unsigned char*)"this is a test");
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"this is a test", (const unsigned char*)nullptr) == (const unsigned char*)"this is a test");
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"", (const unsigned char*)nullptr) == (const unsigned char*)"");
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)nullptr, (const unsigned char*)nullptr) == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)nullptr, (const unsigned char*)"") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strstr((const unsigned char*)"", (const unsigned char*)"") == (const unsigned char*)"");
+		}
 	//--- static const unsigned char *my_strcasestr(const unsigned char *str, const unsigned char *sub);
-		{}
+		{
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)"is a test") == (const unsigned char*)"Is A Test");
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)"was a test") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)"this is a test") == (const unsigned char*)"This Is A Test");
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)"this is a test ") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)"") == (const unsigned char*)"This Is A Test");
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"This Is A Test", (const unsigned char*)nullptr) == (const unsigned char*)"This Is A Test");
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"", (const unsigned char*)nullptr) == (const unsigned char*)"");
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)nullptr, (const unsigned char*)nullptr) == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)nullptr, (const unsigned char*)"") == nullptr);
+			UNITTEST_ASSERT(Tools::String::my_strcasestr((const unsigned char*)"", (const unsigned char*)"") == (const unsigned char*)"");
+		}
 	//--- static bool strsub(const char *str, const char *sub);
-		{}
+		{	UNITTEST_ASSERT(!Tools::String::strsub("this is a test", "is a"));
+			UNITTEST_ASSERT(!Tools::String::strsub("this is a test", "was a"));
+			UNITTEST_ASSERT(Tools::String::strsub("this is a test", "this is a test"));
+			UNITTEST_ASSERT(!Tools::String::strsub("this is a test", "this is a test "));
+			UNITTEST_ASSERT(Tools::String::strsub("this is a test", ""));
+			UNITTEST_ASSERT(Tools::String::strsub("this is a test", nullptr));
+			UNITTEST_ASSERT(Tools::String::strsub("", nullptr));
+			UNITTEST_ASSERT(Tools::String::strsub(nullptr, nullptr));
+			UNITTEST_ASSERT(Tools::String::strsub(nullptr, ""));
+			UNITTEST_ASSERT(Tools::String::strsub("", ""));
+		}
 	//--- static bool strcasesub(const char *str, const char *sub);
-		{}
+		{
+			UNITTEST_ASSERT(!Tools::String::strcasesub("This Is A Test", "is a"));
+			UNITTEST_ASSERT(!Tools::String::strcasesub("This Is A Test", "was a"));
+			UNITTEST_ASSERT(Tools::String::strcasesub("This Is A Test", "this is a test"));
+			UNITTEST_ASSERT(!Tools::String::strcasesub("This Is A Test", "this is a test "));
+			UNITTEST_ASSERT(Tools::String::strcasesub("This Is A Test", ""));
+			UNITTEST_ASSERT(Tools::String::strcasesub("This Is A Test", nullptr));
+			UNITTEST_ASSERT(Tools::String::strcasesub("", nullptr));
+			UNITTEST_ASSERT(Tools::String::strcasesub(nullptr, nullptr));
+			UNITTEST_ASSERT(Tools::String::strcasesub(nullptr, ""));
+			UNITTEST_ASSERT(Tools::String::strcasesub("", ""));
+		}
 	//--- String(void): Memory(), mBufferSize(BUFFER_SIZE)
-		{}
+		{
+			Tools::String string;
+			UNITTEST_ASSERT(Tools::String() != nullptr);
+			UNITTEST_EQUALS(string.getLength(), 0u);
+			UNITTEST_EQUALS(string.getBufferSize(), Tools::String::BUFFER_SIZE);
+		}
 
 	//--- Tools::String::Tools::String(const char *str = nullptr, size_t count = 0); --------------------------------------
 		{	Tools::String string;
@@ -420,19 +488,6 @@ namespace UnitTests {
 			UNITTEST_ASSERT(Tools::String("1234567890") == "1234567890");
 			UNITTEST_ASSERT(Tools::String("123456") + "7890" == Tools::String("1234567890"));
 		}
-	// //---	bool operator==(const std::string& std_string) const; ---------------------------------------------
-	// //---friend  bool operator==(const std::string& std_string, const Tools::String& string); ------------------------
-		// {
-			// UNITTEST_ASSERT(Tools::String("1234567890"), std::string("1234567890"));
-			// UNITTEST_ASSERT(!(Tools::String("1234567890") == std::string("")));
-			// UNITTEST_ASSERT(std::string("1234567890"), Tools::String("1234567890"));
-			// UNITTEST_ASSERT(!(std::string("") == Tools::String("1234567890")));
-		// }
-	// //---	Tools::String(const std::string& std_string); ------------------------------------------------------------
-		// {
-		// 	UNITTEST_EQUALS(Tools::String(std::string("")), "");
-		// 	UNITTEST_EQUALS(Tools::String(std::string("this is a test")), "this is a test");
-		// }
 
 	//---	bool Tools::String::operator!=(const Tools::String& string) const; ----------------------------------------------
 		{
@@ -853,27 +908,6 @@ namespace UnitTests {
 			UNITTEST_EQUALS("test" + Tools::String("string"), "teststring");
 		}
 
-
-	// //---	friend std::ostream& Tools::String::operator<<(std::ostream& stream, const Tools::String& string); ------------------
-	// 	// {	Tools::String text("");
-	// 	// 	std::ostringstream output;
-	// 	// 	output << text;
-	// 	// 	UNITTEST_ASSERT(output.str(), text);
-	// 	// }
-	// 	// {	Tools::String text("this is a test");
-	// 	// 	std::ostringstream output;
-	// 	// 	output << text;
-	// 	// 	UNITTEST_ASSERT(output.str(), text);
-	// 	// }
-	// 	// {	Tools::String text;
-	// 	// 	for ( uint i = 0; i < 256; i++ ) {
-	// 	// 		text += "0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF0123456789ABCEDF";
-	// 	// 	}
-	// 	// 	std::ostringstream output;
-	// 	// 	output << text;
-	// 	// 	UNITTEST_ASSERT(output.str(), text);
-	// 	// }
-
 	//---	bool Tools::String::startsWith(const char * sub); -----------------------------------------------------------
 		{
 			UNITTEST_ASSERT(Tools::String("").startsWith(""));
@@ -930,61 +964,6 @@ namespace UnitTests {
             UNITTEST_EQUALS(string.getLength(), 0u);
 			UNITTEST_EQUALS(string.getBufferSize(), Tools::String("").getBufferSize());
 		}
-
-	// //---	Tools::String Tools::String::serialize(void) const; ------------------------------------------------------------------
-	// 	// {
-	// 	// 	UNITTEST_ASSERT(Tools::String("").serialize(),
-	// 	// 			"{ \"Tools::String\": "
-	// 	// 				"{"
-	// 	// 					"\"buffer\": \"\", "
-	// 	// 					"\"length\": \"0\", "
-	// 	// 					"\"size\": \"250\", "
-	// 	// 					"\"compare_fn\": \"strcmp()\", "
-	// 	// 					"\"strsub_fn\": \"strsub()\", "
-	// 	// 					"\"strstr_fn\": \"strstr()\""
-	// 	// 				"}"
-	// 	// 			"}");
-	// 	// 	UNITTEST_ASSERT((Tools::String("") + "1234567890").serialize(),
-	// 	// 			"{ \"Tools::String\": "
-	// 	// 				"{"
-	// 	// 					"\"buffer\": \"1234567890\", "
-	// 	// 					"\"length\": \"10\", "
-	// 	// 					"\"size\": \"10\", "
-	// 	// 					"\"compare_fn\": \"strcmp()\", "
-	// 	// 					"\"strsub_fn\": \"strsub()\", "
-	// 	// 					"\"strstr_fn\": \"strstr()\""
-	// 	// 				"}"
-	// 	// 			"}");
-	// 	// 	UNITTEST_ASSERT(Tools::String("abc").serialize(),
-	// 	// 			"{ \"Tools::String\": "
-	// 	// 				"{"
-	// 	// 					"\"buffer\": \"abc\", "
-	// 	// 					"\"length\": \"3\", "
-	// 	// 					"\"size\": \"3\", "
-	// 	// 					"\"compare_fn\": \"strcmp()\", "
-	// 	// 					"\"strsub_fn\": \"strsub()\", "
-	// 	// 					"\"strstr_fn\": \"strstr()\""
-	// 	// 				"}"
-	// 	// 			"}");
-	// 	// 	UNITTEST_ASSERT((Tools::String("abc") + "1234567890").serialize(),
-	// 	// 			"{ \"Tools::String\": "
-	// 	// 				"{"
-	// 	// 					"\"buffer\": \"abc1234567890\", "
-	// 	// 					"\"length\": \"13\", "
-	// 	// 					"\"size\": \"13\", "
-	// 	// 					"\"compare_fn\": \"strcmp()\", "
-	// 	// 					"\"strsub_fn\": \"strsub()\", "
-	// 	// 					"\"strstr_fn\": \"strstr()\""
-	// 	// 				"}"
-	// 	// 			"}");
-	// 	// }
-	// 		//---	Tools::String Tools::String::toString(void) const; ------------------------------------------------------------------
-	// 			// {
-	// 			// 	UNITTEST_ASSERT(Tools::String("").toString(), "");
-	// 			// 	UNITTEST_ASSERT((Tools::String("") + "1234567890").toString(), "1234567890");
-	// 			// 	UNITTEST_ASSERT(Tools::String("abc").toString(), "abc");
-	// 			// 	UNITTEST_ASSERT((Tools::String("abc") + "1234567890").toString(), "abc1234567890");
-	// 			// }
 
 	//---	Tools::String Tools::String::trim(void) const;
 		{
@@ -1190,11 +1169,11 @@ namespace UnitTests {
 			UNITTEST_EQUALS(Tools::String(tmps).encode(), expect);
 		}
 
-	// //---	static Tools::String Tools::String::wideCharToString(ushort wchar); -------------------------------------------------
+	//---	static Tools::String Tools::String::wideCharToString(ushort wchar); -------------------------------------------------
 		{
-			UNITTEST_EQUALS(Tools::String::wideCharToString('a'),    "a   ");
-			UNITTEST_EQUALS(Tools::String::wideCharToString('ab'),   "ab  ");
-			UNITTEST_EQUALS(Tools::String::wideCharToString('abc'),  "abc ");
+			UNITTEST_EQUALS(Tools::String::wideCharToString('a'),    "a");
+			UNITTEST_EQUALS(Tools::String::wideCharToString('ab'),   "ab");
+			UNITTEST_EQUALS(Tools::String::wideCharToString('abc'),  "abc");
 			UNITTEST_EQUALS(Tools::String::wideCharToString('abcd'), "abcd");
 		}
 
@@ -1252,31 +1231,31 @@ namespace UnitTests {
 	// 	// 				"}"
 	// 	// 			"}");
 	// 	// }
-			//---	Tools::String Tools::String::toString(void) const; ------------------------------------------------------------------
-				{
-					UNITTEST_EQUALS(Tools::String("").toString(), "");
-					UNITTEST_EQUALS((Tools::String("") + "1234567890").toString(), "1234567890");
-					UNITTEST_EQUALS(Tools::String("abc").toString(), "abc");
-					UNITTEST_EQUALS((Tools::String("abc") + "1234567890").toString(), "abc1234567890");
-				}
-			//--- static Tools::String toString(int128_t value, uint radix = 10); ------------------------------------------------
-				{
-					UNITTEST_EQUALS(Tools::String::toString(0LL), "0");
-					UNITTEST_EQUALS(Tools::String::toString(12345678901234LL), "12345678901234");
-					UNITTEST_EQUALS(Tools::String::toString(-12345678901234LL), "-12345678901234");
-					UNITTEST_EQUALS(Tools::String::toString(0x0123456789ABCDEFLL, 16), "123456789ABCDEF");
-					UNITTEST_EQUALS(Tools::String::toString(01234567012345LL, 8), "1234567012345");
-					UNITTEST_EQUALS(Tools::String::toString(0x432143214321LL, 2), "10000110010000101000011001000010100001100100001");
-				}
+	//---	Tools::String Tools::String::toString(void) const; ------------------------------------------------------------------
+		{
+			UNITTEST_EQUALS(Tools::String("").toString(), "");
+			UNITTEST_EQUALS((Tools::String("") + "1234567890").toString(), "1234567890");
+			UNITTEST_EQUALS(Tools::String("abc").toString(), "abc");
+			UNITTEST_EQUALS((Tools::String("abc") + "1234567890").toString(), "abc1234567890");
+		}
+	//--- static Tools::String toString(int128_t value, uint radix = 10); ------------------------------------------------
+		{
+			UNITTEST_EQUALS(Tools::String::toString(0LL), "0");
+			UNITTEST_EQUALS(Tools::String::toString(12345678901234LL), "12345678901234");
+			UNITTEST_EQUALS(Tools::String::toString(-12345678901234LL), "-12345678901234");
+			UNITTEST_EQUALS(Tools::String::toString(0x0123456789ABCDEFLL, 16), "123456789ABCDEF");
+			UNITTEST_EQUALS(Tools::String::toString(01234567012345LL, 8), "1234567012345");
+			UNITTEST_EQUALS(Tools::String::toString(0x432143214321LL, 2), "10000110010000101000011001000010100001100100001");
+		}
 
-				{
-					UNITTEST_EQUALS(Tools::String::toString(0), "0");
-					UNITTEST_EQUALS(Tools::String::toString(1234567890), "1234567890");
-					UNITTEST_EQUALS(Tools::String::toString(-1234567890), "-1234567890");
-					UNITTEST_EQUALS(Tools::String::toString(0x0123456789ABCDEF, 16), "123456789ABCDEF");
-					UNITTEST_EQUALS(Tools::String::toString(01234567, 8), "1234567");
-					UNITTEST_EQUALS(Tools::String::toString(0x4321, 2), "100001100100001");
-				}
+		{
+			UNITTEST_EQUALS(Tools::String::toString(0), "0");
+			UNITTEST_EQUALS(Tools::String::toString(1234567890), "1234567890");
+			UNITTEST_EQUALS(Tools::String::toString(-1234567890), "-1234567890");
+			UNITTEST_EQUALS(Tools::String::toString(0x0123456789ABCDEF, 16), "123456789ABCDEF");
+			UNITTEST_EQUALS(Tools::String::toString(01234567, 8), "1234567");
+			UNITTEST_EQUALS(Tools::String::toString(0x4321, 2), "100001100100001");
+		}
 	// //---	std::vector<Tools::String> Tools::String::split(const char *needle);
 	// 	// {	std::vector<Tools::String> strings;
 	// 	// 	Tools::String test="The is a test of emergency broadcast system. This is only a test.";
@@ -1352,5 +1331,4 @@ namespace UnitTests {
 			UNITTEST_ASSERT(Tools::String::strcasesub("abc", "ABc"));
 		}
 	}
-
 }

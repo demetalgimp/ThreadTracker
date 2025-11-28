@@ -15,7 +15,7 @@ void ALERT(const char *fmt, ...);
 #define THROW_ERROR(fmt,...) { \
 			char tmps[1024]; \
 			snprintf(tmps, sizeof(tmps), "%s[%d]:" fmt, __FUNCTION__, __LINE__, __VA_ARGS__); \
-			throw String(tmps); \
+			throw Tools::String(tmps); \
 		}
 #define ERROR(fmt,...) fprintf(stderr, VT220_RED "ERROR!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
 #define ALERT(fmt,...) fprintf(stderr, VT220_YELLOW "ALERT!!!%s[%d]: " fmt VT220_RESET "\n", __FILE__, __LINE__, __VA_ARGS__)
@@ -42,7 +42,7 @@ namespace Tools {
 			friend std::ostream& operator<<(std::ostream& stream, const Class& object);
 	};
 
-	class Memory: public Class {
+	class Blob: public Class {
 		public:
 			static const uchar *EMPTY;
 
@@ -54,18 +54,18 @@ namespace Tools {
 			static const char *mFullAscii;
 
 		public:
-/*test*/	Memory(void): mText(const_cast<uchar*>(EMPTY)), mLength(0) {}
-/*test*/	Memory(const uchar *str, size_t bytes = 0, bool is_binary = false);
-/*test*/	Memory(const char *str, size_t bytes = 0): Memory((uchar*)str, bytes, false) {}
-			Memory(const Memory& blob);
-			virtual ~Memory(void);
+/*test*/	Blob(void): mText(const_cast<uchar*>(EMPTY)), mLength(0) {}
+/*test*/	Blob(const uchar *str, size_t bytes = 0, bool is_binary = false);
+/*test*/	Blob(const char *str, size_t bytes = 0): Blob((uchar*)str, bytes, false) {}
+			Blob(const Blob& blob);
+			virtual ~Blob(void);
 
 		public:
-/*test*/	Memory& operator=(const char *str);
-/*test*/	Memory& operator=(const Memory& blob);
-/*test*/	Memory& operator=(const String& string);
+/*test*/	Blob& operator=(const char *str);
+/*test*/	Blob& operator=(const Blob& blob);
+/*test*/	Blob& operator=(const String& string);
 			bool operator==(const char *str);
-			bool operator==(const Memory& blob);
+			bool operator==(const Blob& blob);
 /*test*/	uchar operator[](uint index) const;
 /*test*/	virtual void clear(void);
 
@@ -80,7 +80,7 @@ namespace Tools {
 			void copy(const uchar *str, size_t length, bool str_compatible);
 	};
 
-	class String: public Memory {
+	class String: public Blob {
 		public:
 			static const uint BUFFER_SIZE = 250;
 
@@ -101,7 +101,7 @@ namespace Tools {
 /*tested*/	str_fn *strstr_fn = (str_fn*)my_strstr;
 
 		public:
-/*tested*/	String(void): Memory(), mBufferSize(BUFFER_SIZE) {}
+/*tested*/	String(void): Blob(), mBufferSize(BUFFER_SIZE) {}
 /*tested*/	String(const char *str, uint offset = 0, int bytes = -1);
 /*tested*/	String(const String& string);
 /*tested*/	virtual ~String(void) {}

@@ -6,10 +6,17 @@ namespace Parser {
 //=== Stream ======================================================================================
 //=== StringStream ================================================================================
     char StringStream::peek(int offset) {
-        return ( !isEOF()? text[index + offset]: -1 );
+        if ( index < 0 ) {
+            index = 0;
+        }
+        bool between = (0 <= text[index + offset]  &&  text[index + offset] < 0xFF);
+        return ( !isEOF()  &&  between? text[index + offset]: 0 );
     }
 
     bool StringStream::peek(const Tools::String& test, bool consume) {
+        if ( index < 0 ) {
+            index = 0;
+        }
         bool result = text.startsWith(test, index);
 
         if ( consume ) {
@@ -20,15 +27,20 @@ namespace Parser {
     }
 
     char StringStream::current(void) {
-        return ( index < text.getLength()? text[index]: -1 );
+        if ( index < 0 ) {
+            return next();
+
+        } else {
+            return ( index < (int)text.getLength()? text[index]: 0 );
+        }
     }
 
     char StringStream::next(void) {
-        if ( current() == '\n' ) {
+        if ( text[index + 1] == '\n' ) {
             line_number++;
         }
-        char c = ( index < text.getLength()? text[++index]: -1 );
-        return c;
+
+        return ( index < (int)text.getLength()? text[++index]: 0 );
     }
 
     void StringStream::skip(int offset) {
@@ -36,7 +48,7 @@ namespace Parser {
             index = (index + offset > 0? index + offset: 0);
 
         } else {
-            index = (index + offset < text.getLength()? index + offset: text.getLength());
+            index = (index + offset < (int)text.getLength()? index + offset: text.getLength());
         }
     }
 
@@ -50,7 +62,7 @@ namespace Parser {
     }
 
     bool StringStream::isEOF(void) {
-        return (index >= text.getLength());
+        return (index >= (int)text.getLength())  ||  (text.getLength() == 0);
     }
 
 //=== Token =======================================================================================
@@ -83,7 +95,7 @@ namespace Parser {
 
     bool TokenStream::parseWhiteSpace(void) {
         EToken etoken = (stream.isEOF()? eEOF: eEmpty);
-        char tmps[1000];
+        char tmps[10000];
         uint index = 0;
         if ( stream.isSpace() ) {
             while ( index < sizeof(tmps)  &&  !stream.isEOF()  &&  stream.isSpace() ) {
@@ -128,7 +140,6 @@ namespace Parser {
         }
 
         tmps[index++] = 0;
-// fprintf(stderr, "!!!%s[%d]:<%s>\n", __FILE__, __LINE__, Tools::String(tmps).encode().getText());
         current_token = Token(etoken, tmps);
         return (etoken == eSpace || etoken == eLineComment || etoken == eBlockComment);
     }
@@ -148,7 +159,7 @@ namespace Parser {
 
 //TODO: add suffixes {u,l,ul,lu,ll,ull,llu}
     void TokenStream::parseNumber(void) {
-        EToken etoken = eDecimalNumber;
+        EToken etoken = eNumber;
         char tmps[200];
         uint index = 0;
         if ( stream.current() == '-'  ||  stream.current() == '+' ) {
@@ -233,234 +244,182 @@ namespace Parser {
         current_token = Token( (end_of_string == '"'? eStringConstant: eCharConstant), tmps);
     }
 
+    void TokenStream::parseTwoCharToken(char first, char second, EToken combined) {
+        if ( stream.peek(1) == second ) {
+            current_token = Token(combined);
+            stream.next();
+
+        } else {
+            current_token = Token(first);
+        }
+    }
+
     Token TokenStream::next(void) {
         current_token = Token(eEOF);
         // parseWhiteSpace();
-        whitespace.clear();
+        // whitespace.clear();
         // if ( parseWhiteSpace()  &&  grab_white_space ) {
         //     whitespace += (const char*)current_token.token_text.getText();
         // }
+        Tools::String whitespace;
         while ( parseWhiteSpace() ) {//} &&  grab_white_space ) {
             whitespace += (const char*)current_token.token_text.getText();
         }
+        if ( !whitespace.isEmpty() ) {
+            current_token = Token(eSpace, whitespace);
+            return current_token;
+        } else {
+            if ( current_token.isEmpty() ) {
+                if ( current_token.isEOF() ) {
+                    current_token = Token(eEOF);
+                    return current_token;
 
-        if ( current_token.isEmpty() ) {
-            if ( current_token.isEOF() ) {
-                current_token = Token(eEOF);
-                return current_token;
+                } else if ( isalpha(stream.current())  ||  stream.current() == '_' ) {
+                    parseIdentifier();
 
-            } else if ( isalpha(stream.current())  ||  stream.current() == '_' ) {
-                parseIdentifier();
+                } else if ( isdigit(stream.current()) ) {
+                    parseNumber();
 
-            } else if ( isdigit(stream.current()) ) {
-                parseNumber();
+                } else if ( stream.current() == '\''  ||  stream.current() == '"' ) {
+                    parseString();
 
-            } else if ( stream.current() == '\''  ||  stream.current() == '"' ) {
-                parseString();
+                } else {
+                    switch ( stream.current() ) {
+                        case '`':
+                        case '@':
+                        case '#':
+                        case '$':
+                        case '(':
+                        case ')':
+                        case '[':
+                        case ']':
+                        case '\\':
+                        case '{':
+                        case '}':
+                        case ';':
+                        case ',':
+                        case '.':
+                        case '?': current_token = Token(stream.current()); break;
 
-            } else {
-                switch ( stream.current() ) {
-                    case '`':
-                    case '@':
-                    case '#':
-                    case '$':
-                    case '(':
-                    case ')':
-                    case '[':
-                    case ']':
-                    case '\\':
-                    case '{':
-                    case '}':
-                    case ';':
-                    case ',':
-                    case '.':
-                    case '?': current_token = Token(stream.current()); break;
-
-                    case ':':
-                        if ( stream.peek(1) == eColon ) {
-                            current_token = Token(eNameResolution);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eColon);
-                        }
-                        break;
-
-                    case '~':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eBitwiseNotEquals);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eBitwiseNot);
-                        }
-                        break;
-
-                    case '%':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eModulusEquals);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eModulus);
-                        }
-                        break;
-
-                    case '^':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eBitwiseXorEquals);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eBitwiseXor);
-                        }
-                        break;
-
-                    case '&':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eBitwiseAndEquals);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == eAmpersand ) {
-                            current_token = Token(eBooleanAnd);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eBitwiseAnd);
-                        }
-                        break;
-
-                    case '-':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eMinusEquals);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == eMinus ) {
-                            current_token = Token(eDecrement);
-                            stream.next();
-
-                        } else if ( isdigit(stream.peek(1)) ) {
-                            parseNumber();
-                            stream.skip(-1); // <-- patch the stream.next() below
-
-                        } else {
-                            current_token = Token(eMinus);
-                        }
-                        break;
-                    case '+':
-
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eSumEquals);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == ePlus ) {
-                            current_token = Token(eIncrement);
-                            stream.next();
-
-                        } else if ( isdigit(stream.peek(1)) ) {
-                            parseNumber();
-                            stream.skip(-1); // <-- patch the stream.next() below
-
-                        } else {
-                            current_token = Token(eSum);
-                        }
-                        break;
-
-                    case '*':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eMultiplyEquals);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eMultiply);
-                        }
-                        break;
-
-                    case '|':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eBitwiseOrEquals);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == eVerticalBar ) {
-                            current_token = Token(eBooleanOr);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eBitwiseOr);
-                        }
-                        break;
-
-                    case '/':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eDivideEquals);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eDivide);
-                        }
-                        break;
-
-                    case '!':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eNotEqualTo);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eBooleanNot);
-                        }
-                        break;
-
-                    case '=':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eEqualTo);
-                            stream.next();
-
-                        } else {
-                            current_token = Token(eEquals);
-                        }
-                        break;
-
-                    case '<':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eLessEqualTo);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == eLeftAngleBracket ) {
-                            stream.next();
+                        case '&':
                             if ( stream.peek(1) == eEquals ) {
-                                current_token = Token(eShiftLeftAssign);
+                                current_token = Token(eBitwiseAndEquals);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eAmpersand ) {
+                                current_token = Token(eBooleanAnd);
                                 stream.next();
 
                             } else {
-                                current_token = Token(eShiftLeft);
+                                current_token = Token('&');
                             }
+                            break;
 
-                        } else {
-                            current_token = Token(eLessThan);
-                        }
-                        break;
-
-                    case '>':
-                        if ( stream.peek(1) == eEquals ) {
-                            current_token = Token(eGreaterEqualTo);
-                            stream.next();
-
-                        } else if ( stream.peek(1) == eRightAngleBracket ) {
-                            stream.next();
+                        case '|':
                             if ( stream.peek(1) == eEquals ) {
-                                current_token = Token(eShiftRightAssign);
+                                current_token = Token(eBitwiseOrEquals);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eVerticalBar ) {
+                                current_token = Token(eBooleanOr);
                                 stream.next();
 
                             } else {
-                                current_token = Token(eShiftRight);
+                                current_token = Token(eBitwiseOr);
                             }
+                            break;
 
-                        } else {
-                            current_token = Token(eGreaterThan);
-                        }
-                        break;
+                        case '-':
+                            if ( stream.peek(1) == eEquals ) {
+                                current_token = Token(eMinusEquals);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eMinus ) {
+                                current_token = Token(eDecrement);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eGreaterThan ) {
+                                current_token = Token(ePointer);
+                                stream.next();
+
+                            // } else if ( isdigit(stream.peek(1)) ) {
+                            //     parseNumber();
+                            //     stream.skip(-1); // <-- patch the stream.next() below
+
+                            } else {
+                                current_token = Token(eMinus);
+                            }
+                            break;
+
+                        case '+':
+                            if ( stream.peek(1) == eEquals ) {
+                                current_token = Token(eSumEquals);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == ePlus ) {
+                                current_token = Token(eIncrement);
+                                stream.next();
+
+                            // } else if ( isdigit(stream.peek(1)) ) {
+                            //     parseNumber();
+                            //     stream.skip(-1); // <-- patch the stream.next() below
+
+                            } else {
+                                current_token = Token(eSum);
+                            }
+                            break;
+
+                        case '<':
+                            if ( stream.peek(1) == eEquals ) {
+                                current_token = Token(eLessEqualTo);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eLeftAngleBracket ) {
+                                stream.next();
+                                if ( stream.peek(1) == eEquals ) {
+                                    current_token = Token(eShiftLeftAssign);
+                                    stream.next();
+
+                                } else {
+                                    current_token = Token(eShiftLeft);
+                                }
+
+                            } else {
+                                current_token = Token(eLessThan);
+                            }
+                            break;
+
+                        case '>':
+                            if ( stream.peek(1) == eEquals ) {
+                                current_token = Token(eGreaterEqualTo);
+                                stream.next();
+
+                            } else if ( stream.peek(1) == eRightAngleBracket ) {
+                                stream.next();
+                                if ( stream.peek(1) == eEquals ) {
+                                    current_token = Token(eShiftRightAssign);
+                                    stream.next();
+
+                                } else {
+                                    current_token = Token(eShiftRight);
+                                }
+
+                            } else {
+                                current_token = Token(eGreaterThan);
+                            }
+                            break;
+
+                        case ':': parseTwoCharToken(':', ':', eNameResolution); break;
+                        case '~': parseTwoCharToken('~', '=', eBitwiseNotEquals); break;
+                        case '%': parseTwoCharToken('%', '=', eModulusEquals); break;
+                        case '^': parseTwoCharToken('^', '=', eBitwiseXorEquals); break;
+                        case '*': parseTwoCharToken('*', '=', eMultiplyEquals); break;
+                        case '/': parseTwoCharToken('/', '=', eDivideEquals); break;
+                        case '!': parseTwoCharToken('!', '=', eNotEqualTo); break;
+                        case '=': parseTwoCharToken('=', '=', eEqualTo); break;
+                    }
+                    stream.next();
                 }
-                stream.next();
             }
         }
         return current_token;

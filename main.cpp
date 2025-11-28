@@ -59,23 +59,17 @@ void test_scanner(const Tools::String& string) {
     }
     std::cerr << std::endl;
 
-    // if ( accumulator != string ) {
-        std::vector<Tools::String> original = string.split('\n');
-        std::vector<Tools::String> result = accumulator.split('\n');
+    std::vector<Tools::String> original = string.split('\n');
+    std::vector<Tools::String> result = accumulator.split('\n');
 
-        uint max_length = 0;
-        for ( Tools::String line : original ) {
-            max_length = (max_length < line.getLength()? line.getLength(): max_length);
-        }
+    uint max_length = 0;
+    for ( Tools::String line : original ) {
+        max_length = (max_length < line.getLength()? line.getLength(): max_length);
+    }
 
-        for ( uint i = 0; i < original.size(); i++ ) {
-            fprintf(stderr, "[%4d] %*s  [%4d] %s\n", i, -max_length, original[i].encode().getText(), i, result[i].encode().getText());
-        }
-    //     fprintf(stderr, "FAILED\n");
-
-    // } else {
-    //     fprintf(stderr, "Passed\n");
-    // }
+    for ( uint i = 0; i < original.size(); i++ ) {
+        fprintf(stderr, "[%4d] %*s  [%4d] %s\n", i, -max_length, original[i].encode().getText(), i, result[i].encode().getText());
+    }
 }
 
 // struct __threadtracker_thread_state__ {
@@ -94,13 +88,13 @@ void test_scanner(const Tools::String& string) {
 void weave(const Tools::String& input_file, Tools::String& output) {
     // Tools::String source = Tools::File::readFile(input_file);
     Tools::String source =  "void fn(void) {\n"
-                                "// do nothing(); \n"
-                                "if ( a == b ) {\n"
-                                    "/* nothing to do */\n"
-                                "}\n"
-                                "while ( true ) {\n"
-                                    "do_nothing();\n"
-                                "}\n"
+                            "   // do nothing(); \n"
+                            "   if ( a == b ) {\n"
+                            "       /* nothing to do */\n"
+                            "   }\n"
+                            "   while ( true ) {\n"
+                            "       do_nothing();\n"
+                            "   }\n"
                             "}\n";
 
     Parser::TokenStream stream(source);
@@ -109,10 +103,37 @@ void weave(const Tools::String& input_file, Tools::String& output) {
     // bool in_function = false;
     // uint brace_count = 0;
     while ( !(stream.current().isEOF()) ) {
-        Tools::String whole_token = stream.getWhiteSpace().encode() + stream.current().token_text;
+        // Tools::String whole_token = stream.getWhiteSpace().encode() + stream.current().token_text;
+        Tools::String whole_token = stream.current().token_text;
         output += whole_token;
         stream.next();
 fprintf(stderr, "!!!%s[%d]:[%s]\n", __FILE__, __LINE__, whole_token.getText());
+    }
+    output += "\n";
+}
+
+#ifndef UNITTESTS_ONLY
+int main(int cnt, char *args[]) {
+    if ( cnt > 1  &&  Tools::String(args[1]) == "--test" ) {
+        test_scanner(test_elements_str);
+        args++;
+        std::cerr << "----------------------------------------------------------------------------------" << std::endl;
+    }
+    Tools::String result;
+    weave("",result);
+    std::cout << result;
+}
+#endif
+
+    // while ( *++args != nullptr ) {
+    //     try {
+    //         weave(Tools::File::readFile(*args), result);
+    //         std::cout << result;
+
+    //     } catch ( const Tools::String& error ) {
+    //         std::cerr << error << std::endl;
+    //     }
+    // }
     // // --- Look for function definitions
     //     if ( !in_function ) {
     //                                                                 fprintf(stderr, "!!!%s[%d]: Try function detection %s\n", __FILE__, __LINE__, stream.current().token_text.getText());
@@ -184,28 +205,3 @@ fprintf(stderr, "!!!%s[%d]:[%s]\n", __FILE__, __LINE__, whole_token.getText());
     //         }
     //         fprintf(stderr, "!!!%s[%d]:%s\n", __FILE__, __LINE__-1, output.getText());
     //     }
-    }
-    output += "\n";
-}
-
-#ifndef UNITTESTS_ONLY
-int main(int cnt, char *args[]) {
-    if ( cnt > 1  &&  Tools::String(args[1]) == "--test" ) {
-        test_scanner(test_elements_str);
-        args++;
-        std::cerr << "----------------------------------------------------------------------------------" << std::endl;
-    }
-    Tools::String result;
-    weave("",result);
-    std::cout << result;
-    // while ( *++args != nullptr ) {
-    //     try {
-    //         weave(Tools::File::readFile(*args), result);
-    //         std::cout << result;
-
-    //     } catch ( const Tools::String& error ) {
-    //         std::cerr << error << std::endl;
-    //     }
-    // }
-}
-#endif

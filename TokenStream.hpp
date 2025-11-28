@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Memory.hpp"
+#include "Blob.hpp"
 
 namespace Parser {
     enum EToken {
@@ -32,7 +32,7 @@ namespace Parser {
     //--- Operands and their punctuation
         eNameResolution = '::',
         eEmpty = 0, eWord = 'WORD', eDigit = 'DIGI', eAlphaNumeric = 'ANUM',
-        eNumber = '####', eDecimalNumber = '#..#', eHexadecimalNumber = '0x##', eBinaryNumber = '0b##', eFloatingNumber = '#.##', eScientificNumber = '#.e#',
+        eNumber = '####', eHexadecimalNumber = '0x##', eBinaryNumber = '0b##', eFloatingNumber = '#.##', eScientificNumber = '#.e#',
         eQuoted = '""\'\'', eStringConstant = '".."', eCharConstant = '\'..\'',
 
     //--- etc.
@@ -40,36 +40,7 @@ namespace Parser {
         eSpace = 'SPAC', eEOF = -1
     };
 
-
-// #define IS_A(token_specific, token_general) {\
-            if ( token_general == eNumber \
-                    &&  (token_specific == eDecimalNumber  \
-                        ||  token_specific == eNumber  \
-                        ||  token_specific == eHexadecimalNumber  \
-                        ||  token_specific == eBinaryNumber \
-                        ||  token_specific == eFloatingNumber \
-                        ||  token_specific == eScientificNumber) \
-                ) {\
-                return true;\
-            \
-            } else if ( token_general == eQuoted \
-                    &&  (token_specific == eQuoted \
-                        ||  token_specific == eStringConstant \
-                        ||  token_specific == eLineComment \) ) {\
-                return true;\
-            \
-            } else if ( token_general == eSpace \
-                    &&  (token_specific == eSpace \
-                        ||  token_specific == eStringConstant \
-                        ||  token_specific == eLineComment) ) {\
-                return true;\
-            \
-            } else { \
-                return false;\
-            } \
-        }
-
-//=== Stream (abstract) ======================================================================================
+//=== Stream (abstract) ============================================================================
     class CharStream {
         protected:
             uint line_number = 1;
@@ -79,12 +50,11 @@ namespace Parser {
 
         public:
             virtual char peek(int offset=0) = 0;
-            // virtual bool peek(const Tools::String& test, Stream& consumer) = 0;
             virtual bool peek(const Tools::String& test, bool consume = false) = 0;
             virtual char current(void) = 0;
             virtual char next(void) = 0;
             virtual void skip(int offset) = 0;
-            // virtual uint getLineNumber(void) const = 0;
+            virtual uint getLineNumber(void) const { return line_number; }
 
         public:
             virtual bool isSpace(void) = 0;
@@ -95,21 +65,19 @@ namespace Parser {
 //=== StringStream =================================================================================
     class StringStream: public CharStream {
         Tools::String text;
-        uint index;
+        int index;
 
         public:
-            StringStream(const Tools::String& text): text(text), index(0) {}
+            StringStream(const Tools::String& text): text(text), index(-1) {}
             StringStream(const StringStream& stream): text(stream.text), index(stream.index) {}
             virtual ~StringStream(void) {}
 
         public:
             virtual char peek(int offset=0) override;
-            // bool peek(const Tools::String& test, Stream& consumer) override;
             virtual bool peek(const Tools::String& test, bool consume = false) override;
             virtual char current(void) override;
             virtual char next(void) override;
             virtual void skip(int offset) override;
-            // virtual uint getLineNumber(void) const override;
 
         public:
             virtual bool isSpace(void) override;
@@ -121,6 +89,7 @@ namespace Parser {
                 fprintf(stderr, "%4d:%s\n", linenum, text.getText());
                 fprintf(stderr, "%4s %*s^\n", "", index, " ");
             }
+            int getIndex(void) const { return index; }
             Tools::String toString(void) const {
                 return "[\"" + text + "\": " + Tools::String::toString(index) + "]";
             }
@@ -142,6 +111,10 @@ namespace Parser {
         bool isSpace(void)  { return (token_type == eSpace  ||  token_type == eStringConstant  ||  token_type == eLineComment); }
         operator bool(void) { return (token_type != eEmpty  &&  token_type != eEOF); }
 
+        bool operator==(const Token& other) const {
+            return ( this->token_type == other.token_type  &&  this->token_text == other.token_text );
+        }
+
         Tools::String toString(void) const {
             return "{\"" + token_text + "\", '" + Tools::String::wideCharToString(token_type) + "'}";
         }
@@ -155,8 +128,8 @@ namespace Parser {
         private:
             StringStream stream;
             Token current_token;
-            bool grab_white_space = true;
-            Tools::String whitespace;
+            // bool grab_white_space = true;
+            // Tools::String whitespace;
 
         public:
             TokenStream(const StringStream& stream): stream(stream) {}
@@ -168,6 +141,7 @@ namespace Parser {
             void parseIdentifier(void);
             void parseNumber(void);
             void parseString(void);
+            void parseTwoCharToken(char first, char second, EToken combined);
 
         public:
             bool peek(const Tools::String& test);
@@ -175,12 +149,21 @@ namespace Parser {
             bool peek(char token) { return (stream.peek(1) == token); }
             Token next(void);
             Token current(void);
-            Tools::String getWhiteSpace(void) { current(); return whitespace; }
-            Tools::String getText(void) { current(); return whitespace + current_token.token_text; }
+            // Tools::String getWhiteSpace(void) { current(); return whitespace; }
+            // Tools::String getText(void) { current(); return whitespace + current_token.token_text; }
+            Tools::String getText(void) { current(); return current_token.token_text; }
+            bool consume(const Tools::String& test) {
+                if ( peek(test) ) {
+                    next();
+                    return true;
+                }
+                return false;
+            }
 
         public:
             Tools::String toString(void) const {
-                return "[" + stream.toString() + " : " + current_token.toString() + " WS<" + whitespace + ">]";
+                // return "[" + stream.toString() + " : " + current_token.toString() + " WS<" + whitespace + ">]";
+                return "[" + stream.toString() + " : " + current_token.toString() + "]";
             }
     };
 }

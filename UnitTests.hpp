@@ -6,7 +6,14 @@
 #include <sys/wait.h>
 #include <iostream>
 #include <sstream>
-#include "Memory.hpp"
+#include "Blob.hpp"
+
+#define JAILED
+
+#define STR(x) #x
+#define XSTR(x) STR(x)
+#define LINE_AS_STR XSTR(__LINE__)
+
 
 #define VT220_RESET  "\x1B[0m"
 #define VT220_RED    "\x1B[31m"
@@ -17,7 +24,7 @@ extern uint test_number;
 extern uint tests_that_passed;
 extern uint tests_that_failed;
 
-void process_wait_results(pid_t pid);
+char process_wait_results(pid_t pid);
 void process_test(bool test, const char *expected_str, auto expected, const char *got_str, auto got);
 // namespace UnitTests {
 // 	extern void test_scanner(const char *test_elements_str);
@@ -77,7 +84,6 @@ struct VT200 {
 	static constexpr const char *BG_Bright_White = "\x1B[107m";
 };
 
-#define JAILED
 extern uint test_cnt;
 extern uint test_fail;
 
@@ -113,40 +119,56 @@ extern uint test_fail;
 		IAS_fail(usecase_file, usecase_method, usecase_lineno, MSG); \
 	}
 
-//--- ERROR! Because I am using Eclipse (which has fallen from grace), moving these macros cannot be left in a header file without TONS of errors.
-// #define UNITTEST_ASSERT(TO_TEST) { \
-		const char *usecase_file = __FILE__; \
-		const char *usecase_method = __FUNCTION__; \
-		uint usecase_lineno = __LINE__; \
-		IAS_unittest_assert(usecase_file, usecase_method, usecase_lineno, #TO_TEST, TO_TEST); \
-	}
+	// pid_t pid; \
+	// if ( (pid = fork()) == 0 ) { \
+	// 	auto _expected = expected; \
+	// 	auto _got = got; \
+	// 	process_test((_got OP _expected), #expected, expected, #got, got); \
+	// 	\
+	// } else { \
+	// 	process_wait_results(pid); \
+	// } \
 
+// #define BOOKMARK() " [" __FILE__ ":" __FUNCTION__ ":" LINE_AS_STR "]: "
+// #define UNITTEST_EQUALS(OUTPUT_TO_TEST, EXPECTED) { \
+// 		test_number++; \
+// 		pid_t pid; \
+// 		if ( (pid = fork()) == 0 ) { \
+// 			IAS_unittest_equals(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, #EXPECTED, OUTPUT_TO_TEST, EXPECTED); \
+// 			exit(0); \
+// 			\
+// 		} else { \
+// 			process_wait_results(pid); \
+// 		} \
+// 	}
 #define UNITTEST_EQUALS(OUTPUT_TO_TEST, EXPECTED) { \
-		const char *usecase_file = __FILE__; \
-		const char *usecase_method = __FUNCTION__; \
-		uint usecase_lineno = __LINE__; \
-		IAS_unittest_equals(usecase_file, usecase_method, usecase_lineno, #OUTPUT_TO_TEST, #EXPECTED, OUTPUT_TO_TEST, EXPECTED); \
+		IAS_unittest_equals(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, #EXPECTED, OUTPUT_TO_TEST, EXPECTED); \
 	}
 
+// #define UNITTEST_NOT_EQUALS(OUTPUT_TO_TEST, EXPECTED) { \
+// 		test_number++; \
+// 		pid_t pid; \
+// 		if ( (pid = fork()) == 0 ) { \
+// 			IAS_unittest_not_equals(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, #EXPECTED, OUTPUT_TO_TEST, EXPECTED); \
+// 			exit(0); \
+// 			\
+// 		} else { \
+// 			char result = process_wait_results(pid); \
+// 		} \
+// 	}
+#define UNITTEST_NOT_EQUALS(OUTPUT_TO_TEST, EXPECTED) { \
+		IAS_unittest_not_equals(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, #EXPECTED, OUTPUT_TO_TEST, EXPECTED); \
+	}
 #define UNITTEST_PATTERN(OUTPUT_TO_TEST, PATTERN) { \
-		const char *usecase_file = __FILE__; \
-		const char *usecase_method = __FUNCTION__; \
-		uint usecase_lineno = __LINE__; \
-		IAS_unittest_pattern(usecase_file, usecase_method, usecase_lineno, #OUTPUT_TO_TEST, #PATTERN, OUTPUT_TO_TEST, PATTERN); \
+		IAS_unittest_pattern(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, #PATTERN, OUTPUT_TO_TEST, PATTERN); \
 	}
 
 #define UNITTEST_ASSERT(OUTPUT_TO_TEST) { \
-		const char *usecase_file = __FILE__; \
-		const char *usecase_method = __FUNCTION__; \
-		uint usecase_lineno = __LINE__; \
-		IAS_unittest_assert(usecase_file, usecase_method, usecase_lineno, #OUTPUT_TO_TEST, OUTPUT_TO_TEST); \
+		IAS_unittest_assert(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, OUTPUT_TO_TEST); \
 	}
 
 #define UNITTEST_REFUTE(OUTPUT_TO_TEST) { \
-		const char *usecase_file = __FILE__; \
-		const char *usecase_method = __FUNCTION__; \
-		uint usecase_lineno = __LINE__; \
-		IAS_unittest_refute(usecase_file, usecase_method, usecase_lineno, #OUTPUT_TO_TEST, OUTPUT_TO_TEST); \
+		IAS_unittest_refute(__FILE__, __FUNCTION__, __LINE__, #OUTPUT_TO_TEST, OUTPUT_TO_TEST); \
 	}
 
 

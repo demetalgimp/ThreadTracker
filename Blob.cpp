@@ -1,5 +1,5 @@
 #include <string>
-#include "Memory.hpp"
+#include "Blob.hpp"
 
 #define VT220_RESET  "\x1B[0m"
 #define VT220_RED    "\x1B[31m"
@@ -10,12 +10,12 @@ namespace Tools {
 
 //=== Memory ========================================================================================
 	// const char *Memory::HexAscii = "0123456789ABCDEF";
-	const char *Memory::mFullAscii =
+	const char *Blob::mFullAscii =
 					// "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 					"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
-	const uchar *Memory::EMPTY = (uchar*)("");
+	const uchar *Blob::EMPTY = (uchar*)("");
 
-	Memory::Memory(const uchar *str, size_t bytes, bool is_binary) {
+	Blob::Blob(const uchar *str, size_t bytes, bool is_binary) {
 		mStrCompatible = !is_binary;
 		if ( str != nullptr  &&  *str != 0 ) {
 			if ( is_binary ) {
@@ -36,7 +36,7 @@ namespace Tools {
 			mStrCompatible = (str != nullptr);
 		}
 	}
-	Memory::Memory(const Memory& memory): mLength(memory.mLength), mStrCompatible(memory.mStrCompatible) {
+	Blob::Blob(const Blob& memory): mLength(memory.mLength), mStrCompatible(memory.mStrCompatible) {
 		if ( memory.mText != nullptr  &&  memory.mText != EMPTY  && *memory.mText != 0 ) {
 			mText = new uchar[mLength + 1];
 			memcpy(mText, memory.mText, mLength);
@@ -45,13 +45,13 @@ namespace Tools {
 			mText = const_cast<uchar *>(EMPTY);
 		}
 	}
-	Memory::~Memory(void) {
+	Blob::~Blob(void) {
 		if ( mText != nullptr  &&  mText != EMPTY ) {
 			delete [] mText;
 		}
 		mText = const_cast<uchar*>(EMPTY);
 	}
-	Memory& Memory::operator=(const char *str) {
+	Blob& Blob::operator=(const char *str) {
 		if ( str == nullptr ) {
 			clear();
 
@@ -61,27 +61,27 @@ namespace Tools {
 		}
 		return *this;
 	}
-	Memory& Memory::operator=(const Memory& memory) {
+	Blob& Blob::operator=(const Blob& memory) {
 		copy(memory.mText, memory.mLength, true);
 		mStrCompatible = memory.mStrCompatible;
 		return *this;
 	}
-	Memory& Memory::operator=(const String& string) {
+	Blob& Blob::operator=(const String& string) {
 		copy(string.mText, string.mLength, true);
 		mStrCompatible = string.isStrCompatible();
 		return *this;
 	}
-	bool Memory::operator==(const char *str) {
+	bool Blob::operator==(const char *str) {
 		if ( str == nullptr ) {
 			return (mLength == 0);
 		}
 		return (strcmp((char*)mText, str) == 0);
 	}
-	bool Memory::operator==(const Memory& memory) {
+	bool Blob::operator==(const Blob& memory) {
 		return (strcmp((char*)mText, (char*)memory.mText) == 0);
 	}
 
-	uchar Memory::operator[](uint index) const {
+	uchar Blob::operator[](uint index) const {
 		if ( index < mLength ) {
 			return mText[index];
 
@@ -89,7 +89,7 @@ namespace Tools {
 			return 0xFFu;
 		}
 	}
-	void Memory::clear(void) {
+	void Blob::clear(void) {
 		if ( mText != nullptr  &&  mText != EMPTY ) {
 			delete [] mText;
 			mText = const_cast<uchar*>(EMPTY);
@@ -101,10 +101,10 @@ namespace Tools {
 	//                 v               v               v               v               v
 	// 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0
 	// xxxxx:  00 01 02 03  04 05 06 07 | 08 09 0A 0B  0C 0D 0E 0F   0123456789ABCDEF
-	String Memory::hexDump(void) const {
+	String Blob::hexDump(void) const {
 		String result;
-		const uint BYTES_ADDRESS = 5 + 1; // +1 for the ':' character
-		const uint SPACING_BYTES = 8;
+		// const uint BYTES_ADDRESS = 5 + 1; // +1 for the ':' character
+		// const uint SPACING_BYTES = 8;
 		const uint BYTES_PER_LINE = 16;
 		const uint TEXT_SECTION_INDEX = 0x3D;
 		const uint LINE_LEN = 0x50;//BYTES_WIDE * 3 + BYTES_WIDE + BYTES_ADDRESS + SPACING_BYTES;
@@ -162,7 +162,7 @@ namespace Tools {
 		return result;
 	}
 
-	String Memory::toString(void) const {
+	String Blob::toString(void) const {
 		char tmps[mLength * 4], *s = tmps;
 		memset(tmps, 0, sizeof(tmps));
 		for ( uint i = 0; i < mLength; i++ ) {
@@ -179,7 +179,7 @@ namespace Tools {
 		return tmps;
 	}
 
-	void Memory::copy(const uchar *str, size_t len, bool str_compat) {
+	void Blob::copy(const uchar *str, size_t len, bool str_compat) {
 		if ( mText != EMPTY  &&  *mText != 0 ) {
 			delete [] mText;
 		}
@@ -355,6 +355,7 @@ namespace Tools {
 			memcpy(mText + mLength, str, len);
 			mLength += len;
 			mText[mLength] = 0;
+fprintf(stderr, "DEBUG: String::operator+=(): mText=\"%s\"\n", mText);
 		}
 		return *this;
 	}
@@ -631,7 +632,7 @@ namespace Tools {
 		}
 	}
 	Tools::String String::wideCharToString(wchar_t wchar) {
-		char tmps[sizeof(wchar_t) + 1] = {' ', ' ', ' ', ' ', 0}, *s = tmps;
+		char tmps[sizeof(wchar_t) + 1] = {0,0,0,0,0}, *s = tmps;
 		for ( int i = 3; i >= 0; i-- ) {
 			char c = (char)((wchar >> (i << 3)) & 0xFF);
 			if ( c != 0 ) {
@@ -642,10 +643,22 @@ namespace Tools {
 	}
 
 	const uchar *String::my_strstr(const uchar *str, const uchar *sub) {
+		if ( str == nullptr ||  *str == 0 ) {
+			return (const uchar*)"";
+		}
+		if ( sub == nullptr || *sub == 0 ) {
+			return str;
+		}
 		const char *result = strstr((const char*)str, (const char*)sub);
 		return (const uchar*)result;
 	}
 	const uchar *String::my_strcasestr(const uchar *str, const uchar *sub) {
+		if ( str == nullptr ||  *str == 0 ) {
+			return (const uchar*)"";
+		}
+		if ( sub == nullptr || *sub == 0 ) {
+			return str;
+		}
 		const char *result = strcasestr((const char*)str, (const char*)sub);
 		return (const uchar*)result;
 	}
@@ -661,36 +674,40 @@ namespace Tools {
 		}
 		return strcmp(reinterpret_cast<const char*>(str1), reinterpret_cast<const char*>(str2));
 	}
+
 	int String::my_strcasecmp(const uchar *str1, const uchar *str2) {
-		if ( (str1 == nullptr  ||  *str1 == 0)  &&  (str2 == nullptr  ||  *str2 == 0) ) {
+		if ( str1 == nullptr ) {
+			return ( (str2 == nullptr  ||  *str2 == 0)? 0: -1 );
+
+		} else if ( str2 == nullptr ) {
+			return ( str1 != nullptr );
+
+		} else if ( *str1 == 0  &&  *str2 == 0 ) {
 			return 0;
 		}
 		return strcasecmp(reinterpret_cast<const char*>(str1), reinterpret_cast<const char*>(str2));
 	}
+
 	bool String::strsub(const char *str, const char *sub) {
-		int test = testNull((const uchar*)str, (const uchar*)sub);
-		if ( test == -1 ) {
+	//--- str!="..."  && sub!=""        => do the comparison
+		if ( str != nullptr  &&  sub != nullptr  &&  *sub == 0 ) {
 			while ( *sub != 0  &&  *str == *sub ) {
 				str++, sub++;
 			}
 			return (*sub == 0);
-
-		} else {
-			return test;
 		}
+		return true;
 	}
 
 	bool String::strcasesub(const char *str, const char *sub) {
-		int test = testNull((const uchar*)str, (const uchar*)sub);
-		if ( test == -1 ) {
+	//--- toupper(str)!="..."  && toupper(sub)!=""        => do the comparison
+		if ( str != nullptr  &&  sub != nullptr  &&  *sub == 0 ) {
 			while ( *sub != 0  &&  toupper(*str) == toupper(*sub) ) {
 				str++, sub++;
 			}
 			return (*sub == 0);
-
-		} else {
-			return test;
 		}
+		return true;
 	}
 
 	String String::formatString(const String& fmt, ...) {
